@@ -49,7 +49,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.goalList.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "Q":
+		case "ctrl+c", "Q", "Й":
 			return m, tea.Quit
 		}
 	case AppLaunchStart:
