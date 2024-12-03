@@ -406,10 +406,30 @@ func japaneseDayWeek(date time.Time) string {
 	return ""
 }
 
+func englishDayWeek(date time.Time) string {
+	switch date.Weekday() {
+	case time.Monday:
+		return "Mon"
+	case time.Tuesday:
+		return "Tue"
+	case time.Wednesday:
+		return "Wed"
+	case time.Thursday:
+		return "Thu"
+	case time.Friday:
+		return "Fri"
+	case time.Saturday:
+		return "Sat"
+	case time.Sunday:
+		return "Sun"
+	}
+	return ""
+}
+
 func DateString(t time.Time, timeslice goal.Timeframe) string {
 	switch timeslice {
 	case goal.Day:
-		return fmt.Sprintf("%s (%s)", t.Format("2 January 2006"), japaneseDayWeek(t))
+		return fmt.Sprintf("%s (%s)", t.Format("2 January 2006"), englishDayWeek(t))
 	case goal.Week:
 		_, week := t.ISOWeek()
 		return fmt.Sprintf("%s – %s %s (%d)", StartOfWeek(t).Format("02"), EndOfWeek(t).Format("02"), t.Format("January 2006"), week)
