@@ -53,7 +53,7 @@ func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, erro
 		)
 	case goal.Week:
 		rows, err = db.QueryDB(
-			composeQuery(`WHERE timeframe = ? AND DATE(date) > ? AND DATE(date) < ?`),
+			composeQuery(`WHERE timeframe = ? AND DATE(date) >= ? AND DATE(date) <= ?`),
 			string(timeframe),
 			dates.TimeframeDateString(dates.StartOfWeek(date)),
 			dates.TimeframeDateString(dates.EndOfWeek(date)),
