@@ -59,6 +59,15 @@ func NewGoalList(width int, height int, timeframe goal.Timeframe, date time.Time
 	l.SetShowStatusBar(false)
 	l.SetStatusBarItemName("goal", "goals")
 
+	l.KeyMap.CursorUp = key.NewBinding(
+		key.WithKeys("up", "k", "л"),
+		key.WithHelp("↑/k", "up"),
+	)
+	l.KeyMap.CursorDown = key.NewBinding(
+		key.WithKeys("down", "j", "о"),
+		key.WithHelp("↓/j", "down"),
+	)
+
 	actionInput := textinput.New()
 	actionInput.Focus()
 
