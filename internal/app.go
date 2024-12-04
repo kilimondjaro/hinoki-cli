@@ -4,7 +4,7 @@ import (
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"hinoki-cli/internal/db"
-	"hinoki-cli/internal/goallist"
+	"hinoki-cli/internal/screens/timeframe"
 	"log"
 	"time"
 )
@@ -20,9 +20,9 @@ const (
 const startupDelay = time.Second
 
 type model struct {
-	state    State
-	goalList goallist.GoalList
-	startup  StartupModel
+	state           State
+	timeframeScreen timeframe.TimeframeScreen
+	startup         StartupModel
 
 	width  int
 	height int
@@ -46,7 +46,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.startup.SetSize(msg.Width, msg.Height)
-		m.goalList.SetSize(msg.Width, msg.Height)
+		m.timeframeScreen.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "Q", "Й":
@@ -58,14 +58,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, startupDelayCmd(startupDelay))
 	case AppLaunchFinish:
 		m.state = TimeframeView
-		cmds = append(cmds, m.goalList.Init())
+		cmds = append(cmds, m.timeframeScreen.Init())
 	}
 
 	switch m.state {
 	case StartupView:
 		cmds = append(cmds, m.startup.Update(msg))
 	case TimeframeView:
-		cmds = append(cmds, m.goalList.Update(msg))
+		cmds = append(cmds, m.timeframeScreen.Update(msg))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -76,7 +76,7 @@ func (m model) View() string {
 	case StartupView:
 		return m.startup.View()
 	case TimeframeView:
-		return m.goalList.View()
+		return m.timeframeScreen.View()
 	}
 	return ""
 }
@@ -84,7 +84,7 @@ func (m model) View() string {
 func CreateApp() {
 	defer db.CloseDB()
 
-	p := tea.NewProgram(model{goalList: goallist.NewGoalList(0, 0), startup: StartupModel{delay: startupDelay}}, tea.WithAltScreen())
+	p := tea.NewProgram(model{timeframeScreen: timeframe.NewTimeframeScreen(0, 0), startup: StartupModel{delay: startupDelay}}, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
