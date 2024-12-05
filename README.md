@@ -12,7 +12,7 @@ Hinoki Planner is a terminal-based application designed to help you manage your 
 # Installation
 ## macOS
 ```shell
-  brew tap kilimondjaro/homebrew-hinoki-planner
+  brew tap kilimondjaro/hinoki-planner
   brew install hinoki-planner 
 ```
 
