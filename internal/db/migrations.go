@@ -15,6 +15,6 @@ const (
 )
 
 var migrations = map[int]string{
-	0: createGoalsTable,
-	1: addArchivedToGoals,
+	1: createGoalsTable,
+	2: addArchivedToGoals,
 }
