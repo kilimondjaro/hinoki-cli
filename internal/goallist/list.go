@@ -72,7 +72,6 @@ func NewGoalList(width int, height int) GoalList {
 }
 
 func (m *GoalList) Init() tea.Cmd {
-	createGoalsTable()
 	return m.getGoalsCmd()
 }
 
