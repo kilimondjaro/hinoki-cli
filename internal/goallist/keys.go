@@ -35,7 +35,7 @@ func NewListKeyMap() listKeyMap {
 			key.WithHelp("Backspace", "Archive goal"),
 		),
 		changeDate: key.NewBinding(
-			key.WithKeys("D"),
+			key.WithKeys("D", "В"),
 			key.WithHelp("D", "Change date"),
 		),
 		openGoalDetails: key.NewBinding(
