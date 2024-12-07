@@ -9,6 +9,48 @@ import (
 	"time"
 )
 
+func getGoalsByParent(parentId string) ([]goal.Goal, error) {
+	var rows *sql.Rows
+	var err error
+
+	baseQuery := `
+		SELECT id, parent_id, title, created_at, updated_at, is_done, timeframe, date
+		FROM goals
+	`
+
+	orderByQuery := `
+		ORDER BY is_done ASC, date DESC;
+	`
+
+	filterArchivedQuery := `AND is_archived IS NOT true`
+
+	composeQuery := func(query string) string {
+		return baseQuery + query + filterArchivedQuery + orderByQuery
+	}
+
+	rows, err = db.QueryDB(
+		composeQuery(`WHERE parent_id = ?`),
+		parentId,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var goals []goal.Goal
+
+	for rows.Next() {
+		var goal goal.Goal
+		if err := rows.Scan(&goal.ID, &goal.ParentId, &goal.Title, &goal.CreatedAt, &goal.UpdatedAt, &goal.IsDone, &goal.Timeframe, &goal.Date); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+		goals = append(goals, goal)
+	}
+	return goals, rows.Err()
+}
+
 func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, error) {
 	var rows *sql.Rows
 	var err error

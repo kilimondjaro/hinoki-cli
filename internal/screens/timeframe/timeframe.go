@@ -8,6 +8,7 @@ import (
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/goallist"
+	"hinoki-cli/internal/screens"
 	"time"
 )
 
@@ -46,7 +47,7 @@ type GoalsResult struct {
 type AddGoalSuccess struct{}
 type UpdateGoalSuccess struct{}
 
-func NewTimeframeScreen(width int, height int) TimeframeScreen {
+func NewTimeframeScreen() screens.Screen {
 	keys := NewListKeyMap()
 
 	actionInput := textinput.New()
@@ -55,9 +56,9 @@ func NewTimeframeScreen(width int, height int) TimeframeScreen {
 	timeframe := goal.Day
 	date := time.Now()
 
-	goalList := goallist.NewGoalList(width, height, timeframe, date)
+	goalList := goallist.NewGoalList(timeframe, date)
 
-	return TimeframeScreen{keys: keys, actionInput: actionInput, list: goalList, timeframe: timeframe, date: date, width: width, height: height}
+	return &TimeframeScreen{keys: keys, actionInput: actionInput, list: goalList, timeframe: timeframe, date: date}
 }
 
 func (m *TimeframeScreen) Init() tea.Cmd {

@@ -3,12 +3,13 @@ package goallist
 import "github.com/charmbracelet/bubbles/key"
 
 type listKeyMap struct {
-	markGoalDone key.Binding
-	createGoal   key.Binding
-	editGoal     key.Binding
-	reloadGoals  key.Binding
-	archiveGoal  key.Binding
-	changeDate   key.Binding
+	markGoalDone    key.Binding
+	createGoal      key.Binding
+	editGoal        key.Binding
+	reloadGoals     key.Binding
+	archiveGoal     key.Binding
+	changeDate      key.Binding
+	openGoalDetails key.Binding
 }
 
 func NewListKeyMap() listKeyMap {
@@ -18,8 +19,8 @@ func NewListKeyMap() listKeyMap {
 			key.WithHelp("r", "Reload goals"),
 		),
 		markGoalDone: key.NewBinding(
-			key.WithKeys("enter"),
-			key.WithHelp("enter", "Mark goal done"),
+			key.WithKeys(" "),
+			key.WithHelp("Spacebar", "Mark goal done"),
 		),
 		createGoal: key.NewBinding(
 			key.WithKeys("n", "т"),
@@ -36,6 +37,10 @@ func NewListKeyMap() listKeyMap {
 		changeDate: key.NewBinding(
 			key.WithKeys("D"),
 			key.WithHelp("D", "Change date"),
+		),
+		openGoalDetails: key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithHelp("Enter", "Open goal details screen"),
 		),
 	}
 }

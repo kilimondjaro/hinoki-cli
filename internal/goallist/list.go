@@ -29,6 +29,7 @@ type GoalList struct {
 	state       listState
 	actionInput textinput.Model
 	date        time.Time
+	parent      *goal.Goal
 
 	width, height int
 }
@@ -48,11 +49,21 @@ type GoalsResult struct {
 
 type AddGoalSuccess struct{}
 type UpdateGoalSuccess struct{}
+type OpenGoalDetails struct {
+	Goal *goal.Goal
+}
 
-func NewGoalList(width int, height int, timeframe goal.Timeframe, date time.Time) GoalList {
+func NewSubgoalsList(parent *goal.Goal) GoalList {
+	subgoalList := NewGoalList(goal.Day, time.Now())
+	subgoalList.parent = parent
+
+	return subgoalList
+}
+
+func NewGoalList(timeframe goal.Timeframe, date time.Time) GoalList {
 	keys := NewListKeyMap()
 
-	l := list.New([]list.Item{}, GoalItemDelegate{keys: keys}, width, height)
+	l := list.New([]list.Item{}, GoalItemDelegate{keys: keys}, 0, 0)
 	l.SetFilteringEnabled(false)
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
@@ -75,6 +86,7 @@ func NewGoalList(width int, height int, timeframe goal.Timeframe, date time.Time
 }
 
 func (m *GoalList) Init() tea.Cmd {
+	m.state = Normal
 	return m.getGoalsCmd()
 }
 
@@ -147,7 +159,17 @@ func (m *GoalList) IsInActiveState() bool {
 
 func (m *GoalList) getGoalsCmd() func() tea.Msg {
 	return func() tea.Msg {
-		goals, err := getGoalsByDate(m.timeframe, m.date)
+
+		var goals []goal.Goal
+		var err error
+
+		if m.parent != nil {
+			// Goals details view subgoals mode
+			goals, err = getGoalsByParent(m.parent.ID)
+		} else {
+			// Timeframe mode
+			goals, err = getGoalsByDate(m.timeframe, m.date)
+		}
 
 		if err != nil {
 			return err
@@ -207,6 +229,12 @@ func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 		m.actionInput.Placeholder = ""
 		m.actionInput.Prompt = "Change date: "
 		m.state = GoalEditDate
+	case key.Matches(msg, m.keys.openGoalDetails):
+		if len(m.list.Items()) == 0 {
+			return nil
+		}
+
+		return func() tea.Msg { return OpenGoalDetails{Goal: &item} }
 	}
 
 	return nil
@@ -237,7 +265,12 @@ func (m *GoalList) handleActionInputKeyMsg(msg tea.KeyMsg) tea.Cmd {
 
 			return m.updateGoalCmd(item)
 		case NewGoalInProgress:
-			goal := goal.Goal{ID: uuid.New().String(), Title: m.actionInput.Value(), Date: m.date, Timeframe: m.timeframe}
+			var parentID *string
+			if m.parent != nil {
+				parentID = &m.parent.ID
+			}
+
+			goal := goal.Goal{ID: uuid.New().String(), ParentId: parentID, Title: m.actionInput.Value(), Date: m.date, Timeframe: m.timeframe}
 			m.actionInput.SetValue("")
 
 			return m.addGoalCmd(goal)

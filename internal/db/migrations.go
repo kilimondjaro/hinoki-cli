@@ -12,9 +12,11 @@ const (
 	   	date DATETIME                              
 	)`
 	addArchivedToGoals = `ALTER TABLE goals ADD COLUMN is_archived BOOLEAN;`
+	addParentId        = `ALTER TABLE goals ADD COLUMN parent_id TEXT;`
 )
 
 var migrations = map[int]string{
 	1: createGoalsTable,
 	2: addArchivedToGoals,
+	3: addParentId,
 }
