@@ -56,7 +56,7 @@ func NewTimeframeScreen() screens.Screen {
 	timeframe := goal.Day
 	date := time.Now()
 
-	goalList := goallist.NewGoalList(timeframe, date)
+	goalList := goallist.NewGoalList(&timeframe, &date)
 
 	return &TimeframeScreen{keys: keys, actionInput: actionInput, list: goalList, timeframe: timeframe, date: date}
 }

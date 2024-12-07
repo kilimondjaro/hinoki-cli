@@ -24,11 +24,11 @@ type listState int
 
 type GoalList struct {
 	list        list.Model
-	timeframe   goal.Timeframe
+	timeframe   *goal.Timeframe
 	keys        listKeyMap
 	state       listState
 	actionInput textinput.Model
-	date        time.Time
+	date        *time.Time
 	parent      *goal.Goal
 
 	width, height int
@@ -54,13 +54,13 @@ type OpenGoalDetails struct {
 }
 
 func NewSubgoalsList(parent *goal.Goal) GoalList {
-	subgoalList := NewGoalList(goal.Day, time.Now())
+	subgoalList := NewGoalList(nil, nil)
 	subgoalList.parent = parent
 
 	return subgoalList
 }
 
-func NewGoalList(timeframe goal.Timeframe, date time.Time) GoalList {
+func NewGoalList(timeframe *goal.Timeframe, date *time.Time) GoalList {
 	keys := NewListKeyMap()
 
 	l := list.New([]list.Item{}, GoalItemDelegate{keys: keys}, 0, 0)
@@ -149,8 +149,8 @@ func (m *GoalList) RefreshData() func() tea.Msg {
 }
 
 func (m *GoalList) SetDate(timeframe goal.Timeframe, date time.Time) {
-	m.timeframe = timeframe
-	m.date = date
+	m.timeframe = &timeframe
+	m.date = &date
 }
 
 func (m *GoalList) IsInActiveState() bool {
@@ -166,9 +166,9 @@ func (m *GoalList) getGoalsCmd() func() tea.Msg {
 		if m.parent != nil {
 			// Goals details view subgoals mode
 			goals, err = getGoalsByParent(m.parent.ID)
-		} else {
+		} else if m.timeframe != nil && m.date != nil {
 			// Timeframe mode
-			goals, err = getGoalsByDate(m.timeframe, m.date)
+			goals, err = getGoalsByDate(*m.timeframe, *m.date)
 		}
 
 		if err != nil {
@@ -260,8 +260,8 @@ func (m *GoalList) handleActionInputKeyMsg(msg tea.KeyMsg) tea.Cmd {
 				return nil
 			}
 
-			item.Date = date
-			item.Timeframe = timeframe
+			item.Date = &date
+			item.Timeframe = &timeframe
 
 			return m.updateGoalCmd(item)
 		case NewGoalInProgress:
