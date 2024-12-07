@@ -56,14 +56,15 @@ func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, erro
 	var err error
 
 	baseQuery := `
-		SELECT id, title, created_at, updated_at, is_done, timeframe, date
-		FROM goals
+		SELECT g.id, g.title, g.created_at, g.updated_at, g.is_done, g.timeframe, g.date, p.id, p.title
+		FROM goals g
+		LEFT JOIN goals p ON g.parent_id = p.id
 	`
 	orderByQuery := `
-		ORDER BY is_done ASC, date DESC;
+		ORDER BY g.is_done ASC, g.date DESC;
 	`
 
-	filterArchivedQuery := `AND is_archived IS NOT true`
+	filterArchivedQuery := `AND g.is_archived IS NOT true`
 
 	composeQuery := func(query string) string {
 		return baseQuery + query + filterArchivedQuery + orderByQuery
@@ -72,39 +73,39 @@ func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, erro
 	switch timeframe {
 	case goal.Day:
 		rows, err = db.QueryDB(
-			composeQuery(`WHERE timeframe = ? AND DATE(date) = ?`),
+			composeQuery(`WHERE g.timeframe = ? AND DATE(g.date) = ?`),
 			string(timeframe),
 			dates.TimeframeDateString(date),
 		)
 	case goal.Week:
 		rows, err = db.QueryDB(
-			composeQuery(`WHERE timeframe = ? AND DATE(date) >= ? AND DATE(date) <= ?`),
+			composeQuery(`WHERE g.timeframe = ? AND DATE(g.date) >= ? AND DATE(g.date) <= ?`),
 			string(timeframe),
 			dates.TimeframeDateString(dates.StartOfWeek(date)),
 			dates.TimeframeDateString(dates.EndOfWeek(date)),
 		)
 	case goal.Month:
 		rows, err = db.QueryDB(
-			composeQuery(`WHERE timeframe = ? AND DATE(date) LIKE ?`),
+			composeQuery(`WHERE g.timeframe = ? AND DATE(g.date) LIKE ?`),
 			string(timeframe),
 			date.Format("2006-01%"),
 		)
 	case goal.Quarter:
 		rows, err = db.QueryDB(
-			composeQuery(`WHERE timeframe = ? AND DATE(date) > ? AND DATE(date) < ?`),
+			composeQuery(`WHERE g.timeframe = ? AND DATE(g.date) > ? AND DATE(g.date) < ?`),
 			string(timeframe),
 			dates.TimeframeDateString(dates.StartOfQuarter(date)),
 			dates.TimeframeDateString(dates.EndOfQuarter(date)),
 		)
 	case goal.Year:
 		rows, err = db.QueryDB(
-			composeQuery(`WHERE timeframe = ? AND DATE(date) LIKE ?`),
+			composeQuery(`WHERE g.timeframe = ? AND DATE(g.date) LIKE ?`),
 			string(timeframe),
 			date.Format("2006%"),
 		)
 	case goal.Life:
 		rows, err = db.QueryDB(
-			composeQuery(`WHERE timeframe = ?`),
+			composeQuery(`WHERE g.timeframe = ?`),
 			string(timeframe),
 		)
 	}
@@ -119,9 +120,11 @@ func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, erro
 
 	for rows.Next() {
 		var goal goal.Goal
-		if err := rows.Scan(&goal.ID, &goal.Title, &goal.CreatedAt, &goal.UpdatedAt, &goal.IsDone, &goal.Timeframe, &goal.Date); err != nil {
+
+		if err := rows.Scan(&goal.ID, &goal.Title, &goal.CreatedAt, &goal.UpdatedAt, &goal.IsDone, &goal.Timeframe, &goal.Date, &goal.ParentId, &goal.ParentTitle); err != nil {
 			return nil, fmt.Errorf("scan failed: %w", err)
 		}
+
 		goals = append(goals, goal)
 	}
 	return goals, rows.Err()

@@ -19,6 +19,7 @@ var (
 	itemDarkStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff"))
 	itemLightStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000"))
 	selectedItemStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("170"))
+	parentStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 )
 
 func (d GoalItemDelegate) Height() int  { return 1 }
@@ -58,6 +59,10 @@ func (d GoalItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 	}
 
 	str := fmt.Sprintf("[%s] %s", checkmark, i.Title)
+
+	if i.ParentId != nil && i.ParentTitle != nil {
+		str = fmt.Sprintf("%s\n    %s", str, parentStyle.Render(*i.ParentTitle))
+	}
 
 	if index == m.Index() {
 		fn = selectedItemStyle.Render
