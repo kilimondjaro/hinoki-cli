@@ -63,7 +63,11 @@ func (m *GoalDetailsScreen) Update(msg tea.Msg) tea.Cmd {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		cmds = append(cmds, m.handleKeyMsg(msg))
+		cmd := m.handleKeyMsg(msg)
+
+		if cmd != nil {
+			return cmd
+		}
 	}
 
 	if m.state == Normal {
