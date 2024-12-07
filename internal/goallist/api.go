@@ -128,7 +128,7 @@ func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, erro
 }
 
 func addGoal(goal goal.Goal) error {
-	_, err := db.ExecQuery("INSERT INTO goals (id, title, is_done, timeframe, date) VALUES (?, ?, ?, ?, ?)", goal.ID, goal.Title, goal.IsDone, goal.Timeframe, goal.Date)
+	_, err := db.ExecQuery("INSERT INTO goals (id, parent_id, title, is_done, timeframe, date) VALUES (?, ?, ?, ?, ?, ?)", goal.ID, goal.ParentId, goal.Title, goal.IsDone, goal.Timeframe, goal.Date)
 
 	return err
 }
