@@ -75,7 +75,6 @@ func NewGoalList(width int, height int, timeframe goal.Timeframe, date time.Time
 }
 
 func (m *GoalList) Init() tea.Cmd {
-	createGoalsTable()
 	return m.getGoalsCmd()
 }
 
