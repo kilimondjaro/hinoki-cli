@@ -1,11 +1,17 @@
 package goallist
 
+import "hinoki-cli/internal/goal"
+
+const (
+	Timeframe = iota
+	Subgoal
+)
+
 type GoalItem struct {
-	id     string
-	title  string
-	isDone bool
+	goal.Goal
+	mode int
 }
 
 func (i GoalItem) FilterValue() string {
-	return i.title
+	return i.Goal.Title
 }

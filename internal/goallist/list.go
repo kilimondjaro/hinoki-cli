@@ -194,7 +194,7 @@ func (m *GoalList) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 }
 
 func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
-	item, _ := m.list.SelectedItem().(goal.Goal)
+	item, _ := m.list.SelectedItem().(GoalItem)
 
 	switch {
 	case key.Matches(msg, m.keys.markGoalDone):
@@ -202,7 +202,7 @@ func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 			return nil
 		}
 		item.IsDone = !item.IsDone
-		return m.updateGoalCmd(item)
+		return m.updateGoalCmd(item.Goal)
 	case key.Matches(msg, m.keys.createGoal):
 		m.actionInput.Prompt = "[ ] "
 		m.actionInput.Placeholder = "New goal..."
@@ -220,7 +220,7 @@ func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 		return m.getGoalsCmd()
 	case key.Matches(msg, m.keys.archiveGoal):
 		item.IsArchived = true
-		return m.updateGoalCmd(item)
+		return m.updateGoalCmd(item.Goal)
 	case key.Matches(msg, m.keys.changeDate):
 		if len(m.list.Items()) == 0 {
 			return nil
@@ -234,7 +234,7 @@ func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 			return nil
 		}
 
-		return func() tea.Msg { return OpenGoalDetails{Goal: &item} }
+		return func() tea.Msg { return OpenGoalDetails{Goal: &item.Goal} }
 	}
 
 	return nil
@@ -242,7 +242,7 @@ func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 
 func (m *GoalList) handleActionInputKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
-	item, _ := m.list.SelectedItem().(goal.Goal)
+	item, _ := m.list.SelectedItem().(GoalItem)
 
 	switch msg.Type {
 	case tea.KeyEsc:
@@ -253,7 +253,7 @@ func (m *GoalList) handleActionInputKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		case GoalEditing:
 			item.Title = m.actionInput.Value()
 			m.actionInput.SetValue("")
-			cmd = m.updateGoalCmd(item)
+			cmd = m.updateGoalCmd(item.Goal)
 		case GoalEditDate:
 			date, timeframe, err := dates.ParseDate(time.Now(), m.actionInput.Value())
 			if err != nil {
@@ -263,7 +263,7 @@ func (m *GoalList) handleActionInputKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			item.Date = &date
 			item.Timeframe = &timeframe
 
-			return m.updateGoalCmd(item)
+			return m.updateGoalCmd(item.Goal)
 		case NewGoalInProgress:
 			var parentID *string
 			if m.parent != nil {
@@ -289,8 +289,14 @@ func (m *GoalList) handleGoalResult(msg GoalsResult) {
 
 	var items []list.Item
 
+	mode := Timeframe
+
+	if m.parent != nil {
+		mode = Subgoal
+	}
+
 	for _, goal := range msg.goals {
-		items = append(items, goal)
+		items = append(items, GoalItem{Goal: goal, mode: mode})
 	}
 	m.list.SetItems(items)
 }
