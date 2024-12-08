@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"hinoki-cli/internal/goal"
+	"hinoki-cli/internal/dates"
 	"io"
 )
 
@@ -19,12 +19,13 @@ var (
 	itemDarkStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff"))
 	itemLightStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000"))
 	selectedItemStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("170"))
+	parentStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 )
 
 func (d GoalItemDelegate) Height() int  { return 1 }
 func (d GoalItemDelegate) Spacing() int { return 1 }
 func (d GoalItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
-	item, ok := m.SelectedItem().(goal.Goal)
+	item, ok := m.SelectedItem().(GoalItem)
 
 	if !ok {
 		return nil
@@ -41,7 +42,7 @@ func (d GoalItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 }
 
 func (d GoalItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(goal.Goal)
+	i, ok := listItem.(GoalItem)
 	if !ok {
 		return
 	}
@@ -57,7 +58,17 @@ func (d GoalItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 		fn = doneItemStyle.Render
 	}
 
-	str := fmt.Sprintf("[%s] %s", checkmark, i.Title)
+	dateTime := ""
+
+	if i.mode == Subgoal && i.Date != nil && i.Timeframe != nil {
+		dateTime = " (" + dates.DateString(*i.Date, *i.Timeframe) + ")"
+	}
+
+	str := fmt.Sprintf("[%s] %s%s", checkmark, i.Title, parentStyle.Render(dateTime))
+
+	if i.ParentId != nil && i.ParentTitle != nil {
+		str = fmt.Sprintf("%s\n    %s", str, parentStyle.Render(*i.ParentTitle))
+	}
 
 	if index == m.Index() {
 		fn = selectedItemStyle.Render

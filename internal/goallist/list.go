@@ -14,23 +14,22 @@ import (
 
 const (
 	Initial = iota
-	Loading
 	Normal
 	NewGoalInProgress
 	GoalEditing
-	GotoDate
 	GoalEditDate
 )
 
 type listState int
 
 type GoalList struct {
-	list      list.Model
-	timeframe goal.Timeframe
-	keys      listKeyMap
-	state     listState
-	goalInput textinput.Model
-	date      time.Time
+	list        list.Model
+	timeframe   *goal.Timeframe
+	keys        listKeyMap
+	state       listState
+	actionInput textinput.Model
+	date        *time.Time
+	parent      *goal.Goal
 
 	width, height int
 }
@@ -40,22 +39,37 @@ var (
 	actionInputDarkStyle  = lipgloss.NewStyle().MarginBottom(1).Foreground(lipgloss.Color("#cccccc"))
 )
 
+const (
+	maxWidth = 130
+)
+
 type GoalsResult struct {
 	goals []goal.Goal
 }
 
 type AddGoalSuccess struct{}
 type UpdateGoalSuccess struct{}
+type OpenGoalDetails struct {
+	Goal *goal.Goal
+}
 
-func NewGoalList(width int, height int) GoalList {
+func NewSubgoalsList(parent *goal.Goal) GoalList {
+	subgoalList := NewGoalList(nil, nil)
+	subgoalList.parent = parent
+
+	return subgoalList
+}
+
+func NewGoalList(timeframe *goal.Timeframe, date *time.Time) GoalList {
 	keys := NewListKeyMap()
 
-	l := list.New([]list.Item{}, GoalItemDelegate{keys: keys}, width, height)
+	l := list.New([]list.Item{}, GoalItemDelegate{keys: keys}, 0, 0)
 	l.SetFilteringEnabled(false)
 	l.SetShowHelp(false)
 	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
 	l.SetStatusBarItemName("goal", "goals")
+
 	l.KeyMap.CursorUp = key.NewBinding(
 		key.WithKeys("up", "k", "л"),
 		key.WithHelp("↑/k", "up"),
@@ -65,13 +79,14 @@ func NewGoalList(width int, height int) GoalList {
 		key.WithHelp("↓/j", "down"),
 	)
 
-	goalInput := textinput.New()
-	goalInput.Focus()
+	actionInput := textinput.New()
+	actionInput.Focus()
 
-	return GoalList{list: l, keys: keys, state: Initial, goalInput: goalInput, timeframe: goal.Day, date: time.Now()}
+	return GoalList{list: l, keys: keys, state: Initial, actionInput: actionInput, timeframe: timeframe, date: date}
 }
 
 func (m *GoalList) Init() tea.Cmd {
+	m.state = Normal
 	return m.getGoalsCmd()
 }
 
@@ -95,28 +110,14 @@ func (m *GoalList) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (m *GoalList) View() string {
-	slice := lipgloss.NewStyle().
-		SetString(m.timeframe.String()).
-		Underline(true).
-		MarginBottom(1).
-		Render()
-
-	date := lipgloss.
-		NewStyle().
-		SetString(dates.DateString(m.date, m.timeframe)).
-		Height(1).
-		Bold(true).
-		Render()
-
-	header := lipgloss.NewStyle().MarginBottom(2).PaddingTop(2).Render(lipgloss.JoinVertical(lipgloss.Left, slice, date))
-
 	var actionInput string
-	if m.state == NewGoalInProgress || m.state == GoalEditing || m.state == GotoDate || m.state == GoalEditDate {
+
+	if m.state == NewGoalInProgress || m.state == GoalEditing || m.state == GoalEditDate {
 		actionInput = lipgloss.JoinHorizontal(
 			lipgloss.Top,
 			lipgloss.
 				NewStyle().
-				SetString(m.goalInput.View()).
+				SetString(m.actionInput.View()).
 				Render(),
 		)
 
@@ -128,14 +129,13 @@ func (m *GoalList) View() string {
 		actionInput = actionInputStyle.Render(actionInput)
 	}
 
-	headerHeight := lipgloss.Height(header)
 	actionInputHeight := lipgloss.Height(actionInput)
-	listHeight := m.height - headerHeight - actionInputHeight
-	m.list.SetSize(m.width, listHeight)
+
+	listHeight := m.height - actionInputHeight
+	m.list.SetSize(maxWidth, listHeight)
 
 	return lipgloss.NewStyle().
-		SetString(lipgloss.JoinVertical(lipgloss.Left, header, m.list.View(), actionInput)).
-		PaddingLeft(2).
+		SetString(lipgloss.JoinVertical(lipgloss.Left, m.list.View(), actionInput)).
 		Render()
 }
 
@@ -144,9 +144,32 @@ func (m *GoalList) SetSize(width, height int) {
 	m.height = height
 }
 
+func (m *GoalList) RefreshData() func() tea.Msg {
+	return m.getGoalsCmd()
+}
+
+func (m *GoalList) SetDate(timeframe goal.Timeframe, date time.Time) {
+	m.timeframe = &timeframe
+	m.date = &date
+}
+
+func (m *GoalList) IsInActiveState() bool {
+	return m.state != Normal
+}
+
 func (m *GoalList) getGoalsCmd() func() tea.Msg {
 	return func() tea.Msg {
-		goals, err := getGoalsByDate(m.timeframe, m.date)
+
+		var goals []goal.Goal
+		var err error
+
+		if m.parent != nil {
+			// Goals details view subgoals mode
+			goals, err = getGoalsByParent(m.parent.ID)
+		} else if m.timeframe != nil && m.date != nil {
+			// Timeframe mode
+			goals, err = getGoalsByDate(*m.timeframe, *m.date)
+		}
 
 		if err != nil {
 			return err
@@ -159,194 +182,106 @@ func (m *GoalList) getGoalsCmd() func() tea.Msg {
 func (m *GoalList) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	var cmds []tea.Cmd
 
-	switch {
-	case m.state == NewGoalInProgress:
-		cmds = append(cmds, m.handleKeyMsgInNewGoalInProgressState(msg))
-	case m.state == Normal:
+	switch m.state {
+	case Initial:
+		cmds = nil
+	case NewGoalInProgress, GoalEditing, GoalEditDate:
+		cmds = append(cmds, m.handleActionInputKeyMsg(msg))
+	case Normal:
 		cmds = append(cmds, m.handleKeyMsgInNormalState(msg))
-	case m.state == GoalEditing:
-		cmds = append(cmds, m.handleKeyMsgInGoalEditingState(msg))
-	case m.state == GotoDate:
-		cmds = append(cmds, m.handleKeyMsgInGotoDateState(msg))
-	case m.state == GoalEditDate:
-		cmds = append(cmds, m.handleKeyMsgInGoalEditDateState(msg))
 	}
 	return tea.Batch(cmds...)
 }
 
 func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
-	item, _ := m.list.SelectedItem().(goal.Goal)
+	item, _ := m.list.SelectedItem().(GoalItem)
 
 	switch {
-	case key.Matches(msg, m.keys.dayTimeslice):
-		m.timeframe = goal.Day
-		m.date = time.Now()
-		return m.getGoalsCmd()
-	case key.Matches(msg, m.keys.weekTimeslice):
-		m.timeframe = goal.Week
-		m.date = time.Now()
-		return m.getGoalsCmd()
-	case key.Matches(msg, m.keys.monthTimeslice):
-		m.timeframe = goal.Month
-		m.date = time.Now()
-		return m.getGoalsCmd()
-	case key.Matches(msg, m.keys.quarterTimeslice):
-		m.timeframe = goal.Quarter
-		m.date = time.Now()
-		return m.getGoalsCmd()
-	case key.Matches(msg, m.keys.yearTimeslice):
-		m.date = time.Now()
-		m.timeframe = goal.Year
-		return m.getGoalsCmd()
-	case key.Matches(msg, m.keys.currentPeriod):
-		m.date = time.Now()
-		m.timeframe = goal.Day
-		return m.getGoalsCmd()
-	case key.Matches(msg, m.keys.lifeTimeslice):
-		m.date = time.Now()
-		m.timeframe = goal.Life
-		return m.getGoalsCmd()
 	case key.Matches(msg, m.keys.markGoalDone):
 		if len(m.list.Items()) == 0 {
 			return nil
 		}
 		item.IsDone = !item.IsDone
-		return m.updateGoalCmd(item)
+		return m.updateGoalCmd(item.Goal)
 	case key.Matches(msg, m.keys.createGoal):
-		m.goalInput.Prompt = "[ ] "
-		m.goalInput.Placeholder = "New goal..."
+		m.actionInput.Prompt = "[ ] "
+		m.actionInput.Placeholder = "New goal..."
 		m.state = NewGoalInProgress
 	case key.Matches(msg, m.keys.editGoal):
 		if len(m.list.Items()) == 0 {
 			return nil
 		}
 
-		m.goalInput.Placeholder = ""
-		m.goalInput.SetValue(item.Title)
-		m.goalInput.Prompt = "Edit: "
+		m.actionInput.Placeholder = ""
+		m.actionInput.SetValue(item.Title)
+		m.actionInput.Prompt = "Edit: "
 		m.state = GoalEditing
-	case key.Matches(msg, m.keys.previousPeriod):
-		m.date = dates.ChangePeriod(m.date, m.timeframe, -1)
-		return m.getGoalsCmd()
-	case key.Matches(msg, m.keys.nextPeriod):
-		m.date = dates.ChangePeriod(m.date, m.timeframe, 1)
-		return m.getGoalsCmd()
 	case key.Matches(msg, m.keys.reloadGoals):
 		return m.getGoalsCmd()
 	case key.Matches(msg, m.keys.archiveGoal):
 		item.IsArchived = true
-		return m.updateGoalCmd(item)
-	case key.Matches(msg, m.keys.gotoPeriod):
-		m.goalInput.Placeholder = ""
-		m.goalInput.Prompt = "Jump to date: "
-		m.state = GotoDate
+		return m.updateGoalCmd(item.Goal)
 	case key.Matches(msg, m.keys.changeDate):
 		if len(m.list.Items()) == 0 {
 			return nil
 		}
 
-		m.goalInput.Placeholder = ""
-		m.goalInput.Prompt = "Change date: "
+		m.actionInput.Placeholder = ""
+		m.actionInput.Prompt = "Change date: "
 		m.state = GoalEditDate
+	case key.Matches(msg, m.keys.openGoalDetails):
+		if len(m.list.Items()) == 0 {
+			return nil
+		}
+
+		return func() tea.Msg { return OpenGoalDetails{Goal: &item.Goal} }
 	}
 
 	return nil
 }
 
-func (m *GoalList) handleKeyMsgInNewGoalInProgressState(msg tea.KeyMsg) tea.Cmd {
+func (m *GoalList) handleActionInputKeyMsg(msg tea.KeyMsg) tea.Cmd {
 	var cmd tea.Cmd
+	item, _ := m.list.SelectedItem().(GoalItem)
 
 	switch msg.Type {
 	case tea.KeyEsc:
 		m.state = Normal
-		m.goalInput.SetValue("")
-		return nil
+		m.actionInput.SetValue("")
 	case tea.KeyEnter:
-		m.state = Normal
+		switch m.state {
+		case GoalEditing:
+			item.Title = m.actionInput.Value()
+			m.actionInput.SetValue("")
+			cmd = m.updateGoalCmd(item.Goal)
+		case GoalEditDate:
+			date, timeframe, err := dates.ParseDate(time.Now(), m.actionInput.Value())
+			if err != nil {
+				return nil
+			}
 
-		goal := goal.Goal{ID: uuid.New().String(), Title: m.goalInput.Value(), Date: m.date, Timeframe: m.timeframe}
-		m.goalInput.SetValue("")
+			item.Date = &date
+			item.Timeframe = &timeframe
 
-		return m.addGoalCmd(goal)
-	}
+			return m.updateGoalCmd(item.Goal)
+		case NewGoalInProgress:
+			var parentID *string
+			if m.parent != nil {
+				parentID = &m.parent.ID
+			}
 
-	m.goalInput, cmd = m.goalInput.Update(msg)
-	return cmd
-}
+			goal := goal.Goal{ID: uuid.New().String(), ParentId: parentID, Title: m.actionInput.Value(), Date: m.date, Timeframe: m.timeframe}
+			m.actionInput.SetValue("")
 
-func (m *GoalList) handleKeyMsgInGoalEditingState(msg tea.KeyMsg) tea.Cmd {
-	var cmd tea.Cmd
-	item, _ := m.list.SelectedItem().(goal.Goal)
-
-	switch msg.Type {
-	case tea.KeyEsc:
-		m.state = Normal
-		m.goalInput.SetValue("")
-		return nil
-	case tea.KeyEnter:
-		m.state = Normal
-		item.Title = m.goalInput.Value()
-		m.goalInput.SetValue("")
-		return m.updateGoalCmd(item)
-	}
-
-	m.goalInput, cmd = m.goalInput.Update(msg)
-	return cmd
-}
-
-func (m *GoalList) handleKeyMsgInGotoDateState(msg tea.KeyMsg) tea.Cmd {
-	var cmd tea.Cmd
-
-	switch msg.Type {
-	case tea.KeyEsc:
-		m.state = Normal
-		m.goalInput.SetValue("")
-		return nil
-	case tea.KeyEnter:
-		m.state = Normal
-		date, timeframe, err := dates.ParseDate(time.Now(), m.goalInput.Value())
-		m.goalInput.SetValue("")
-		if err == nil {
-			m.timeframe = timeframe
-			m.date = date
+			return m.addGoalCmd(goal)
 		}
-		return m.getGoalsCmd()
+		m.state = Normal
+	default:
+		m.actionInput, cmd = m.actionInput.Update(msg)
+
 	}
 
-	m.goalInput, cmd = m.goalInput.Update(msg)
 	return cmd
-}
-
-func (m *GoalList) handleKeyMsgInGoalEditDateState(msg tea.KeyMsg) tea.Cmd {
-	var cmd tea.Cmd
-	item, _ := m.list.SelectedItem().(goal.Goal)
-
-	switch msg.Type {
-	case tea.KeyEsc:
-		m.state = Normal
-		m.goalInput.SetValue("")
-		return nil
-	case tea.KeyEnter:
-		m.state = Normal
-		date, timeframe, err := dates.ParseDate(time.Now(), m.goalInput.Value())
-		m.goalInput.SetValue("")
-
-		if err != nil {
-			return nil
-		}
-
-		item.Date = date
-		item.Timeframe = timeframe
-
-		return m.updateGoalCmd(item)
-	}
-
-	m.goalInput, cmd = m.goalInput.Update(msg)
-	return cmd
-}
-
-func (m *GoalList) handleTimeframeChange() {
-
 }
 
 func (m *GoalList) handleGoalResult(msg GoalsResult) {
@@ -354,8 +289,14 @@ func (m *GoalList) handleGoalResult(msg GoalsResult) {
 
 	var items []list.Item
 
+	mode := Timeframe
+
+	if m.parent != nil {
+		mode = Subgoal
+	}
+
 	for _, goal := range msg.goals {
-		items = append(items, goal)
+		items = append(items, GoalItem{Goal: goal, mode: mode})
 	}
 	m.list.SetItems(items)
 }

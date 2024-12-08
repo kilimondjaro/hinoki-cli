@@ -36,4 +36,4 @@ clean:
 	rm -rf $(BIN_DIR)
 
 # Default target
-all: build-arm build-amd universal archive checksum
+all: clean build-arm build-amd universal archive checksum

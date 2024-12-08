@@ -5,6 +5,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"hinoki-cli/internal/db"
 	"hinoki-cli/internal/goallist"
+	"hinoki-cli/internal/screens"
+	"hinoki-cli/internal/screens/goaldetails"
+	"hinoki-cli/internal/screens/timeframe"
 	"log"
 	"time"
 )
@@ -13,16 +16,16 @@ type State int
 
 const (
 	StartupView = iota
-	//Login
 	TimeframeView
+	GoalsDetailsView
 )
 
 const startupDelay = time.Second
 
 type model struct {
-	state    State
-	goalList goallist.GoalList
-	startup  StartupModel
+	state        State
+	activeScreen screens.Screen
+	startup      StartupModel
 
 	width  int
 	height int
@@ -46,7 +49,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		m.startup.SetSize(msg.Width, msg.Height)
-		m.goalList.SetSize(msg.Width, msg.Height)
+		m.activeScreen.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "Q", "Й":
@@ -56,16 +59,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = StartupView
 		cmds = append(cmds, m.startup.Init())
 		cmds = append(cmds, startupDelayCmd(startupDelay))
-	case AppLaunchFinish:
+	case AppLaunchFinish, goaldetails.OpenTimeframeScreen:
 		m.state = TimeframeView
-		cmds = append(cmds, m.goalList.Init())
+		m.activeScreen = timeframe.NewTimeframeScreen()
+		m.activeScreen.SetSize(m.width, m.height)
+		cmds = append(cmds, m.activeScreen.Init())
+	case goallist.OpenGoalDetails:
+		m.state = GoalsDetailsView
+		m.activeScreen = goaldetails.NewGoalDetailsScreen(msg.Goal)
+		m.activeScreen.SetSize(m.width, m.height)
+		cmds = append(cmds, m.activeScreen.Init())
 	}
 
 	switch m.state {
 	case StartupView:
 		cmds = append(cmds, m.startup.Update(msg))
-	case TimeframeView:
-		cmds = append(cmds, m.goalList.Update(msg))
+	case TimeframeView, GoalsDetailsView:
+		cmds = append(cmds, m.activeScreen.Update(msg))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -75,8 +85,8 @@ func (m model) View() string {
 	switch m.state {
 	case StartupView:
 		return m.startup.View()
-	case TimeframeView:
-		return m.goalList.View()
+	case TimeframeView, GoalsDetailsView:
+		return m.activeScreen.View()
 	}
 	return ""
 }
@@ -84,7 +94,7 @@ func (m model) View() string {
 func CreateApp() {
 	defer db.CloseDB()
 
-	p := tea.NewProgram(model{goalList: goallist.NewGoalList(0, 0), startup: StartupModel{delay: startupDelay}}, tea.WithAltScreen())
+	p := tea.NewProgram(model{activeScreen: timeframe.NewTimeframeScreen(), startup: StartupModel{delay: startupDelay}}, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)

@@ -20,9 +20,9 @@ var (
 	mu       sync.Mutex
 )
 
-// •	macOS: ~/Library/Application Support/<your-app-name>/local.db
-// •	Linux: ~/.config/<your-app-name>/local.db
-// •	Windows: %AppData%\<your-app-name>\local.db
+// •	macOS: ~/Library/Application Support/hinoki-planner/local.db
+// •	Linux: ~/.config/hinoki-planner/local.db
+// •	Windows: %AppData%\hinoki-planner\local.db
 func getDBPath() (string, error) {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
