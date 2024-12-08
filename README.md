@@ -43,13 +43,14 @@ Hinoki Planner is designed to be highly intuitive and efficient, making navigati
 
 ## Managing goals
 
-| Action                              | Key(s)                 | Description                                                                                 |
-|-------------------------------------|------------------------|---------------------------------------------------------------------------------------------|
-| **Create a goal**                   | `n` then `Enter`       | Create a new goal and submit it by pressing `Enter`.                                        |
-| **Mark a goal as done**             | `Enter`                | Mark the currently selected goal as done.                                                   |
-| **Archive a goal**                  | `Backspace`            | Archive the currently selected goal.                                                        |
-| **Move a goal to another period**   | `D` then specify date  | Move the selected goal to another period by pressing uppercase `D` and specifying the date. |
-| **Edit a goal**                     | `e`                    | Edit the currently selected goal.                                                           |
+| Action                            | Key(s)                | Description                                                                                 |
+|-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
+| **Create a goal**                 | `n` then `Enter`      | Create a new goal and submit it by pressing `Enter`.                                        |
+| **Mark a goal as done**           | `Spacebar`            | Mark the currently selected goal as done.                                                   |
+| **Archive a goal**                | `Backspace`           | Archive the currently selected goal.                                                        |
+| **Move a goal to another period** | `D` then specify date | Move the selected goal to another period by pressing uppercase `D` and specifying the date. |
+| **Edit a goal**                   | `e`                   | Edit the currently selected goal.                                                           |
+| **Open goal details**             | `Enter`               | Open goal details screen for managing subgoals.                                             |
 
 ## Date and Timeframe Shortcuts
 | Keyword                  | Shorthand     | Description                                                                                   | Timeframe      |
