@@ -19,7 +19,7 @@ func getGoalsByParent(parentId string) ([]goal.Goal, error) {
 	`
 
 	orderByQuery := `
-		ORDER BY is_done ASC, date DESC;
+		ORDER BY is_done ASC, created_at ASC;
 	`
 
 	filterArchivedQuery := `AND is_archived IS NOT true`
@@ -61,7 +61,7 @@ func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, erro
 		LEFT JOIN goals p ON g.parent_id = p.id
 	`
 	orderByQuery := `
-		ORDER BY g.is_done ASC, g.date DESC;
+		ORDER BY g.is_done ASC, g.created_at ASC;
 	`
 
 	filterArchivedQuery := `AND g.is_archived IS NOT true`

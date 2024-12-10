@@ -7,4 +7,5 @@ type Screen interface {
 	Update(tea.Msg) tea.Cmd
 	View() string
 	SetSize(width, height int)
+	Refresh() tea.Cmd
 }

@@ -152,7 +152,7 @@ func (m *TimeframeScreen) SetSize(width, height int) {
 	m.height = height
 }
 
-func (m *TimeframeScreen) refreshData() func() tea.Msg {
+func (m *TimeframeScreen) Refresh() tea.Cmd {
 	m.list.SetDate(m.timeframe, m.date)
 	return m.list.RefreshData()
 }
@@ -179,37 +179,37 @@ func (m *TimeframeScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 	case key.Matches(msg, m.keys.dayTimeslice):
 		m.timeframe = goal.Day
 		m.date = time.Now()
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.weekTimeslice):
 		m.timeframe = goal.Week
 		m.date = time.Now()
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.monthTimeslice):
 		m.timeframe = goal.Month
 		m.date = time.Now()
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.quarterTimeslice):
 		m.timeframe = goal.Quarter
 		m.date = time.Now()
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.yearTimeslice):
 		m.date = time.Now()
 		m.timeframe = goal.Year
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.currentPeriod):
 		m.date = time.Now()
 		m.timeframe = goal.Day
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.lifeTimeslice):
 		m.date = time.Now()
 		m.timeframe = goal.Life
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.previousPeriod):
 		m.date = dates.ChangePeriod(m.date, m.timeframe, -1)
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.nextPeriod):
 		m.date = dates.ChangePeriod(m.date, m.timeframe, 1)
-		return m.refreshData()
+		return m.Refresh()
 	case key.Matches(msg, m.keys.gotoPeriod):
 		m.actionInput.Placeholder = ""
 		m.actionInput.Prompt = "Jump to date: "
@@ -234,7 +234,7 @@ func (m *TimeframeScreen) handleKeyMsgInGotoDateState(msg tea.KeyMsg) tea.Cmd {
 			m.timeframe = timeframe
 			m.date = date
 		}
-		return m.refreshData()
+		return m.Refresh()
 	}
 
 	m.actionInput, cmd = m.actionInput.Update(msg)

@@ -436,7 +436,7 @@ func DateString(t time.Time, timeslice goal.Timeframe) string {
 	case goal.Month:
 		return t.Format("January 2006")
 	case goal.Quarter:
-		return fmt.Sprintf("Q%d %d", int(t.Month())/3+1, t.Year())
+		return fmt.Sprintf("Q%d %d", int(t.Month()-1)/3+1, t.Year())
 	case goal.Year:
 		return t.Format("2006")
 	case goal.Life:

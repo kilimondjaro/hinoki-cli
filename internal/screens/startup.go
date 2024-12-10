@@ -1,4 +1,4 @@
-package internal
+package screens
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,6 +14,10 @@ type StartupModel struct {
 	width, height int
 	delay         time.Duration
 	letterCounter int
+}
+
+func NewStartupScreen(delay time.Duration) Screen {
+	return &StartupModel{delay: delay}
 }
 
 func (m *StartupModel) Init() tea.Cmd {
@@ -46,6 +50,10 @@ func (m *StartupModel) View() string {
 func (m *StartupModel) SetSize(width, height int) {
 	m.width = width
 	m.height = height
+}
+
+func (m *StartupModel) Refresh() tea.Cmd {
+	return nil
 }
 
 func calcTickDuration(d time.Duration, strLen int) time.Duration {

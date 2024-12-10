@@ -61,7 +61,7 @@ func (d GoalItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 	dateTime := ""
 
 	if i.mode == Subgoal && i.Date != nil && i.Timeframe != nil {
-		dateTime = " (" + dates.DateString(*i.Date, *i.Timeframe) + ")"
+		dateTime = "\n    " + dates.DateString(*i.Date, *i.Timeframe)
 	}
 
 	str := fmt.Sprintf("[%s] %s%s", checkmark, i.Title, parentStyle.Render(dateTime))

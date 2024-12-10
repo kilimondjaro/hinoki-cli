@@ -41,7 +41,6 @@ type GoalsResult struct {
 
 type AddGoalSuccess struct{}
 type UpdateGoalSuccess struct{}
-type OpenTimeframeScreen struct{}
 
 func NewGoalDetailsScreen(goal *goal.Goal) screens.Screen {
 	keys := NewListKeyMap()
@@ -133,7 +132,7 @@ func (m *GoalDetailsScreen) SetSize(width, height int) {
 	m.height = height
 }
 
-func (m *GoalDetailsScreen) refreshData() func() tea.Msg {
+func (m *GoalDetailsScreen) Refresh() tea.Cmd {
 	return m.list.RefreshData()
 }
 
@@ -158,7 +157,7 @@ func (m *GoalDetailsScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case msg.String() == "esc":
 		return func() tea.Msg {
-			return OpenTimeframeScreen{}
+			return screens.GoBack{}
 		}
 	}
 	return nil
@@ -172,15 +171,6 @@ func (m *GoalDetailsScreen) handleKeyMsgInGotoDateState(msg tea.KeyMsg) tea.Cmd 
 		m.state = Normal
 		m.actionInput.SetValue("")
 		return nil
-	case tea.KeyEnter:
-		m.state = Normal
-		//date, timeframe, err := dates.ParseDate(time.Now(), m.actionInput.Value())
-		//m.actionInput.SetValue("")
-		//if err == nil {
-		//	m.timeframe = timeframe
-		//	m.date = date
-		//}
-		//return m.refreshData()
 	}
 
 	m.actionInput, cmd = m.actionInput.Update(msg)

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/goal"
+	"hinoki-cli/internal/screens"
 	"time"
 )
 
@@ -49,9 +50,6 @@ type GoalsResult struct {
 
 type AddGoalSuccess struct{}
 type UpdateGoalSuccess struct{}
-type OpenGoalDetails struct {
-	Goal *goal.Goal
-}
 
 func NewSubgoalsList(parent *goal.Goal) GoalList {
 	subgoalList := NewGoalList(nil, nil)
@@ -234,7 +232,7 @@ func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 			return nil
 		}
 
-		return func() tea.Msg { return OpenGoalDetails{Goal: &item.Goal} }
+		return func() tea.Msg { return screens.OpenGoalDetailsScreen{Goal: &item.Goal} }
 	}
 
 	return nil
@@ -256,6 +254,7 @@ func (m *GoalList) handleActionInputKeyMsg(msg tea.KeyMsg) tea.Cmd {
 			cmd = m.updateGoalCmd(item.Goal)
 		case GoalEditDate:
 			date, timeframe, err := dates.ParseDate(time.Now(), m.actionInput.Value())
+			m.actionInput.SetValue("")
 			if err != nil {
 				return nil
 			}
