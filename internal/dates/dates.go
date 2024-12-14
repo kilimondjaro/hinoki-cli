@@ -75,16 +75,16 @@ const (
 	YearShort      DateKeyword = "y"
 	QuarterKwrd    DateKeyword = "quarter"
 	QuarterShort   DateKeyword = "q"
-	Q1Kwrd         DateKeyword = "Q1"
-	Q2Kwrd         DateKeyword = "Q2"
-	Q3Kwrd         DateKeyword = "Q3"
-	Q4Kwrd         DateKeyword = "Q4"
+	Q1Kwrd         DateKeyword = "q1"
+	Q2Kwrd         DateKeyword = "q2"
+	Q3Kwrd         DateKeyword = "q3"
+	Q4Kwrd         DateKeyword = "q4"
 	Life           DateKeyword = "life"
 	LifeShort      DateKeyword = "l"
 )
 
 func TimeframeDateString(t time.Time) string {
-	return t.Format("2006-01-02")
+	return t.UTC().Format("2006-01-02")
 }
 
 func StartOfWeek(date time.Time) time.Time {
@@ -109,19 +109,28 @@ func EndOfWeek(date time.Time) time.Time {
 	return date.AddDate(0, 0, offset).Truncate(24 * time.Hour)
 }
 
+func DateWithoutTime(date time.Time) time.Time {
+	return time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+}
+
+func DateWithoutTimeAndDay(date time.Time) time.Time {
+	return time.Date(date.Year(), date.Month(), 0, 0, 0, 0, 0, date.Location())
+}
+
 func StartOfQuarter(date time.Time) time.Time {
+	var d time.Time
 	switch date.Month() {
 	case 1, 2, 3:
-		return date.AddDate(0, 1-int(date.Month()), 0)
+		d = date.AddDate(0, 1-int(date.Month()), 0)
 	case 4, 5, 6:
-		return date.AddDate(0, 4-int(date.Month()), 0)
+		d = date.AddDate(0, 4-int(date.Month()), 0)
 	case 7, 8, 9:
-		return date.AddDate(0, 7-int(date.Month()), 0)
+		d = date.AddDate(0, 7-int(date.Month()), 0)
 	case 10, 11, 12:
-		return date.AddDate(0, 10-int(date.Month()), 0)
+		d = date.AddDate(0, 10-int(date.Month()), 0)
 	}
 
-	return date
+	return DateWithoutTimeAndDay(d)
 }
 
 func EndOfQuarter(date time.Time) time.Time {
