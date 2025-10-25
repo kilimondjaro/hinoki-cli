@@ -1,12 +1,13 @@
 package goaldetails
 
 import (
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/goallist"
 	"hinoki-cli/internal/screens"
+
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 const (
@@ -78,7 +79,7 @@ func (m *GoalDetailsScreen) Update(msg tea.Msg) tea.Cmd {
 
 func (m *GoalDetailsScreen) View() string {
 
-	header := lipgloss.NewStyle().MarginBottom(2).PaddingTop(2).Render(lipgloss.JoinVertical(lipgloss.Left, m.goal.Title))
+	header := lipgloss.NewStyle().MarginBottom(2).PaddingTop(2).PaddingRight(8).Width(m.width).Render(lipgloss.JoinVertical(lipgloss.Left, m.goal.Title))
 
 	var actionInput string
 	if m.state == GotoDate {
@@ -114,7 +115,7 @@ func (m *GoalDetailsScreen) View() string {
 		style = style.PaddingLeft(horizontalPadding).PaddingRight(horizontalPadding)
 	}
 
-	m.list.SetSize(maxWidth, listHeight)
+	m.list.SetSize(min(m.width, maxWidth), listHeight)
 
 	view := lipgloss.JoinVertical(lipgloss.Left, header, m.list.View())
 

@@ -1,15 +1,16 @@
 package timeframe
 
 import (
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/goallist"
 	"hinoki-cli/internal/screens"
 	"time"
+
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 const (
@@ -134,7 +135,7 @@ func (m *TimeframeScreen) View() string {
 		style = style.PaddingLeft(horizontalPadding).PaddingRight(horizontalPadding)
 	}
 
-	m.list.SetSize(maxWidth, listHeight)
+	m.list.SetSize(min(m.width, maxWidth), listHeight)
 
 	view := lipgloss.JoinVertical(lipgloss.Left, header, m.list.View())
 

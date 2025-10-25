@@ -2,13 +2,14 @@ package internal
 
 import (
 	"fmt"
-	tea "github.com/charmbracelet/bubbletea"
 	"hinoki-cli/internal/db"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/screens/goaldetails"
 	"hinoki-cli/internal/screens/timeframe"
 	"log"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 const startupDelay = time.Second
@@ -43,7 +44,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "Q", "Й":
+		case "ctrl+c":
 			return m, tea.Quit
 		}
 	}
