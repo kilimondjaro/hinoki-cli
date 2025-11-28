@@ -83,6 +83,12 @@ func QueryDB(query string, args ...interface{}) (*sql.Rows, error) {
 	return instance.Query(query, args...)
 }
 
+func QueryRowDB(query string, args ...interface{}) *sql.Row {
+	mu.Lock()
+	defer mu.Unlock()
+	return instance.QueryRow(query, args...)
+}
+
 func createSchemaVersionTable() error {
 	_, err := ExecQuery(`
 		CREATE TABLE IF NOT EXISTS schema_version (

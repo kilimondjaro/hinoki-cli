@@ -322,6 +322,17 @@ func (m *GoalList) SetGoalIDToSelect(goalID string) {
 	m.goalIDToSelect = goalID
 }
 
+func (m *GoalList) GetSelectedGoal() *goal.Goal {
+	if len(m.list.Items()) == 0 {
+		return nil
+	}
+	item, ok := m.list.SelectedItem().(GoalItem)
+	if !ok {
+		return nil
+	}
+	return &item.Goal
+}
+
 func (m *GoalList) addGoalCmd(goal goal.Goal) func() tea.Msg {
 	return func() tea.Msg {
 		err := addGoal(goal)

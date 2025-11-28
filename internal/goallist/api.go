@@ -131,6 +131,24 @@ func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, erro
 	return goals, rows.Err()
 }
 
+func GetGoalByID(goalID string) (*goal.Goal, error) {
+	query := `
+		SELECT id, parent_id, title, created_at, updated_at, is_done, timeframe, date, is_archived
+		FROM goals
+		WHERE id = ? AND is_archived IS NOT true
+	`
+
+	row := db.QueryRowDB(query, goalID)
+
+	var g goal.Goal
+	err := row.Scan(&g.ID, &g.ParentId, &g.Title, &g.CreatedAt, &g.UpdatedAt, &g.IsDone, &g.Timeframe, &g.Date, &g.IsArchived)
+	if err != nil {
+		return nil, err
+	}
+
+	return &g, nil
+}
+
 func addGoal(goal goal.Goal) error {
 	_, err := db.ExecQuery("INSERT INTO goals (id, parent_id, title, is_done, timeframe, date) VALUES (?, ?, ?, ?, ?, ?)", goal.ID, goal.ParentId, goal.Title, goal.IsDone, goal.Timeframe, goal.Date)
 

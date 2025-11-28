@@ -249,6 +249,12 @@ func (m *TimeframeScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 		return func() tea.Msg {
 			return screens.OpenSearchScreen{}
 		}
+	case key.Matches(msg, m.keys.goToParent):
+		selectedGoal := m.list.GetSelectedGoal()
+		if selectedGoal == nil || selectedGoal.ParentId == nil {
+			return nil
+		}
+		return m.goToParentGoalCmd(*selectedGoal.ParentId)
 	}
 	return nil
 }
@@ -274,4 +280,23 @@ func (m *TimeframeScreen) handleKeyMsgInGotoDateState(msg tea.KeyMsg) tea.Cmd {
 
 	m.actionInput, cmd = m.actionInput.Update(msg)
 	return cmd
+}
+
+func (m *TimeframeScreen) goToParentGoalCmd(parentID string) tea.Cmd {
+	return func() tea.Msg {
+		parentGoal, err := goallist.GetGoalByID(parentID)
+		if err != nil || parentGoal == nil {
+			return nil
+		}
+
+		if parentGoal.Timeframe == nil || parentGoal.Date == nil {
+			return nil
+		}
+
+		return screens.OpenTimeframeScreenWithGoal{
+			Timeframe: *parentGoal.Timeframe,
+			Date:      *parentGoal.Date,
+			GoalID:    parentGoal.ID,
+		}
+	}
 }
