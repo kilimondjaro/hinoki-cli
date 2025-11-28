@@ -1,16 +1,17 @@
 package goallist
 
 import (
+	"hinoki-cli/internal/dates"
+	"hinoki-cli/internal/goal"
+	"hinoki-cli/internal/screens"
+	"time"
+
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
-	"hinoki-cli/internal/dates"
-	"hinoki-cli/internal/goal"
-	"hinoki-cli/internal/screens"
-	"time"
 )
 
 const (
@@ -38,10 +39,6 @@ type GoalList struct {
 var (
 	actionInputLightStyle = lipgloss.NewStyle().MarginBottom(1).Foreground(lipgloss.Color("#666666"))
 	actionInputDarkStyle  = lipgloss.NewStyle().MarginBottom(1).Foreground(lipgloss.Color("#cccccc"))
-)
-
-const (
-	maxWidth = 130
 )
 
 type GoalsResult struct {
@@ -115,6 +112,7 @@ func (m *GoalList) View() string {
 			lipgloss.Top,
 			lipgloss.
 				NewStyle().
+				Width(m.width).
 				SetString(m.actionInput.View()).
 				Render(),
 		)
@@ -130,7 +128,7 @@ func (m *GoalList) View() string {
 	actionInputHeight := lipgloss.Height(actionInput)
 
 	listHeight := m.height - actionInputHeight
-	m.list.SetSize(maxWidth, listHeight)
+	m.list.SetSize(m.width, listHeight)
 
 	return lipgloss.NewStyle().
 		SetString(lipgloss.JoinVertical(lipgloss.Left, m.list.View(), actionInput)).

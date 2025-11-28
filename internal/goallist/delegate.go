@@ -2,12 +2,13 @@ package goallist
 
 import (
 	"fmt"
+	"hinoki-cli/internal/dates"
+	"io"
+
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"hinoki-cli/internal/dates"
-	"io"
 )
 
 type GoalItemDelegate struct {
@@ -22,7 +23,10 @@ var (
 	parentStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
 )
 
-func (d GoalItemDelegate) Height() int  { return 1 }
+func (d GoalItemDelegate) Height() int {
+	return 2
+}
+
 func (d GoalItemDelegate) Spacing() int { return 1 }
 func (d GoalItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
 	item, ok := m.SelectedItem().(GoalItem)
@@ -74,5 +78,9 @@ func (d GoalItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 		fn = selectedItemStyle.Render
 	}
 
-	fmt.Fprint(w, fn(str))
+	wrapped := lipgloss.NewStyle().
+		Width(m.Width()).
+		Render(str)
+
+	fmt.Fprint(w, fn(wrapped))
 }
