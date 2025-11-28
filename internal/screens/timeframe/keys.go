@@ -13,6 +13,7 @@ type listKeyMap struct {
 	previousPeriod   key.Binding
 	currentPeriod    key.Binding
 	gotoPeriod       key.Binding
+	searchGoals      key.Binding
 }
 
 func NewListKeyMap() listKeyMap {
@@ -56,6 +57,10 @@ func NewListKeyMap() listKeyMap {
 		gotoPeriod: key.NewBinding(
 			key.WithKeys("g", "п"),
 			key.WithHelp("g", "Go to period"),
+		),
+		searchGoals: key.NewBinding(
+			key.WithKeys("f", "/"),
+			key.WithHelp("f", "Search goals"),
 		),
 	}
 }

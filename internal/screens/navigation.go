@@ -2,6 +2,7 @@ package screens
 
 import (
 	"hinoki-cli/internal/goal"
+	"time"
 )
 
 type Navigation interface {
@@ -17,9 +18,15 @@ type NavigationState struct {
 
 type GoBack struct{}
 type OpenTimeframeScreen struct{}
+type OpenTimeframeScreenWithGoal struct {
+	Timeframe goal.Timeframe
+	Date      time.Time
+	GoalID    string
+}
 type OpenGoalDetailsScreen struct {
 	Goal *goal.Goal
 }
+type OpenSearchScreen struct{}
 
 func (m *NavigationState) Push(screen Screen) {
 	m.stack = append(m.stack, screen)

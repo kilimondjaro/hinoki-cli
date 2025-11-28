@@ -32,6 +32,7 @@ type GoalList struct {
 	actionInput textinput.Model
 	date        *time.Time
 	parent      *goal.Goal
+	goalIDToSelect string
 
 	width, height int
 }
@@ -296,6 +297,28 @@ func (m *GoalList) handleGoalResult(msg GoalsResult) {
 		items = append(items, GoalItem{Goal: goal, mode: mode})
 	}
 	m.list.SetItems(items)
+
+	// Select the goal if we have one to select
+	if m.goalIDToSelect != "" {
+		m.SelectGoalByID(m.goalIDToSelect)
+		m.goalIDToSelect = "" // Clear it after selecting
+	}
+}
+
+func (m *GoalList) SelectGoalByID(goalID string) {
+	items := m.list.Items()
+	for i, item := range items {
+		if goalItem, ok := item.(GoalItem); ok {
+			if goalItem.ID == goalID {
+				m.list.Select(i)
+				return
+			}
+		}
+	}
+}
+
+func (m *GoalList) SetGoalIDToSelect(goalID string) {
+	m.goalIDToSelect = goalID
 }
 
 func (m *GoalList) addGoalCmd(goal goal.Goal) func() tea.Msg {

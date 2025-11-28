@@ -5,6 +5,7 @@ import (
 	"hinoki-cli/internal/db"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/screens/goaldetails"
+	"hinoki-cli/internal/screens/search"
 	"hinoki-cli/internal/screens/timeframe"
 	"log"
 	"time"
@@ -84,6 +85,22 @@ func (m model) handleNavigation(msg tea.Msg) tea.Cmd {
 		timeframeScreen.SetSize(m.width, m.height)
 		cmds = append(cmds, timeframeScreen.Init())
 		m.navigation.Replace(timeframeScreen)
+	case screens.OpenTimeframeScreenWithGoal:
+		timeframeScreen := timeframe.NewTimeframeScreen()
+		if ts, ok := timeframeScreen.(*timeframe.TimeframeScreen); ok {
+			ts.SetTimeframeAndDate(msg.Timeframe, msg.Date)
+			if msg.GoalID != "" {
+				ts.SetSelectedGoalID(msg.GoalID)
+			}
+		}
+		timeframeScreen.SetSize(m.width, m.height)
+		cmds = append(cmds, timeframeScreen.Init(), timeframeScreen.Refresh())
+		m.navigation.Replace(timeframeScreen)
+	case screens.OpenSearchScreen:
+		searchScreen := search.NewSearchScreen()
+		searchScreen.SetSize(m.width, m.height)
+		cmds = append(cmds, searchScreen.Init())
+		m.navigation.Push(searchScreen)
 	case screens.OpenGoalDetailsScreen:
 		goalDetailsScreen := goaldetails.NewGoalDetailsScreen(msg.Goal)
 		goalDetailsScreen.SetSize(m.width, m.height)
