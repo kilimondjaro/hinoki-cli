@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/goal"
+	"hinoki-cli/internal/theme"
 	"io"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -22,11 +23,8 @@ func (i searchItem) FilterValue() string {
 type searchItemDelegate struct{}
 
 var (
-	searchTitleStyle     = lipgloss.NewStyle()
-	searchMetaStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
-	searchSelectedStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("170"))
-	searchUnselectedDark = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff"))
-	searchUnselectedLite = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000"))
+	searchMetaStyle     = lipgloss.NewStyle().Foreground(theme.TextMuted())
+	searchSelectedStyle = lipgloss.NewStyle().Foreground(theme.TextSelected())
 )
 
 func newSearchItemDelegate() list.ItemDelegate {
@@ -47,10 +45,7 @@ func (d searchItemDelegate) Render(w io.Writer, m list.Model, index int, listIte
 		return
 	}
 
-	render := searchUnselectedLite.Render
-	if lipgloss.HasDarkBackground() {
-		render = searchUnselectedDark.Render
-	}
+	itemStyle := lipgloss.NewStyle().Foreground(theme.TextPrimary())
 
 	meta := d.metaLine(item.goal)
 
@@ -60,10 +55,11 @@ func (d searchItemDelegate) Render(w io.Writer, m list.Model, index int, listIte
 	}
 
 	if index == m.Index() {
-		render = searchSelectedStyle.Render
+		itemStyle = searchSelectedStyle
 	}
 
-	fmt.Fprint(w, render(lipgloss.NewStyle().Width(m.Width()).Render(line)))
+	wrapped := lipgloss.NewStyle().Width(m.Width()).Render(line)
+	fmt.Fprint(w, itemStyle.Render(wrapped))
 }
 
 func (d searchItemDelegate) metaLine(goal goal.Goal) string {
