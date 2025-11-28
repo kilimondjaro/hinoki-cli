@@ -4,6 +4,7 @@ import (
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/screens"
+	"hinoki-cli/internal/theme"
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -25,21 +26,21 @@ const (
 type listState int
 
 type GoalList struct {
-	list        list.Model
-	timeframe   *goal.Timeframe
-	keys        listKeyMap
-	state       listState
-	actionInput textinput.Model
-	date        *time.Time
-	parent      *goal.Goal
+	list           list.Model
+	timeframe      *goal.Timeframe
+	keys           listKeyMap
+	state          listState
+	actionInput    textinput.Model
+	date           *time.Time
+	parent         *goal.Goal
 	goalIDToSelect string
 
 	width, height int
 }
 
 var (
-	actionInputLightStyle = lipgloss.NewStyle().MarginBottom(1).Foreground(lipgloss.Color("#666666"))
-	actionInputDarkStyle  = lipgloss.NewStyle().MarginBottom(1).Foreground(lipgloss.Color("#cccccc"))
+	actionInputLightStyle = lipgloss.NewStyle().MarginBottom(1).Foreground(theme.TextSecondary())
+	actionInputDarkStyle  = lipgloss.NewStyle().MarginBottom(1).Foreground(theme.TextSecondary())
 )
 
 type GoalsResult struct {

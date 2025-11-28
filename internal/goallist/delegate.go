@@ -3,6 +3,7 @@ package goallist
 import (
 	"fmt"
 	"hinoki-cli/internal/dates"
+	"hinoki-cli/internal/theme"
 	"io"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -16,11 +17,9 @@ type GoalItemDelegate struct {
 }
 
 var (
-	doneItemStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#666666"))
-	itemDarkStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffffff"))
-	itemLightStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#000000"))
-	selectedItemStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("170"))
-	parentStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
+	doneItemStyle     = lipgloss.NewStyle().Foreground(theme.TextDisabled())
+	selectedItemStyle = lipgloss.NewStyle().Foreground(theme.TextSelected())
+	parentStyle       = lipgloss.NewStyle().Foreground(theme.TextMuted())
 )
 
 func (d GoalItemDelegate) Height() int {
@@ -51,15 +50,12 @@ func (d GoalItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 		return
 	}
 
-	fn := itemLightStyle.Render
-	if lipgloss.HasDarkBackground() {
-		fn = itemDarkStyle.Render
-	}
+	itemStyle := lipgloss.NewStyle().Foreground(theme.TextPrimary())
 
 	checkmark := " "
 	if i.IsDone {
 		checkmark = "x"
-		fn = doneItemStyle.Render
+		itemStyle = doneItemStyle
 	}
 
 	dateTime := ""
@@ -75,12 +71,12 @@ func (d GoalItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 	}
 
 	if index == m.Index() {
-		fn = selectedItemStyle.Render
+		itemStyle = selectedItemStyle
 	}
 
 	wrapped := lipgloss.NewStyle().
 		Width(m.Width()).
 		Render(str)
 
-	fmt.Fprint(w, fn(wrapped))
+	fmt.Fprint(w, itemStyle.Render(wrapped))
 }

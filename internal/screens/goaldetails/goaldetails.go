@@ -4,6 +4,7 @@ import (
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/goallist"
 	"hinoki-cli/internal/screens"
+	"hinoki-cli/internal/theme"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,8 +29,8 @@ type GoalDetailsScreen struct {
 }
 
 var (
-	actionInputLightStyle = lipgloss.NewStyle().MarginBottom(1).Foreground(lipgloss.Color("#666666"))
-	actionInputDarkStyle  = lipgloss.NewStyle().MarginBottom(1).Foreground(lipgloss.Color("#cccccc"))
+	actionInputLightStyle = lipgloss.NewStyle().MarginBottom(1).Foreground(theme.TextSecondary())
+	actionInputDarkStyle  = lipgloss.NewStyle().MarginBottom(1).Foreground(theme.TextSecondary())
 )
 
 const (
