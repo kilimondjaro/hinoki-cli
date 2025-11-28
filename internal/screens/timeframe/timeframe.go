@@ -1,11 +1,12 @@
 package timeframe
 
 import (
+	"time"
+
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/goallist"
 	"hinoki-cli/internal/screens"
-	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -59,7 +60,23 @@ func NewTimeframeScreen() screens.Screen {
 
 	goalList := goallist.NewGoalList(&timeframe, &date)
 
-	return &TimeframeScreen{keys: keys, actionInput: actionInput, list: goalList, timeframe: timeframe, date: date}
+	return &TimeframeScreen{
+		keys:        keys,
+		actionInput: actionInput,
+		list:        goalList,
+		timeframe:   timeframe,
+		date:        date,
+	}
+}
+
+func (m *TimeframeScreen) SetTimeframeAndDate(timeframe goal.Timeframe, date time.Time) {
+	m.timeframe = timeframe
+	m.date = date
+	m.list.SetDate(timeframe, date)
+}
+
+func (m *TimeframeScreen) SetSelectedGoalID(goalID string) {
+	m.list.SetGoalIDToSelect(goalID)
 }
 
 func (m *TimeframeScreen) Init() tea.Cmd {
@@ -76,6 +93,8 @@ func (m *TimeframeScreen) Update(msg tea.Msg) tea.Cmd {
 		if cmd != nil {
 			return cmd
 		}
+	case error:
+		// swallow errors in UI loop, they will be logged by Bubble Tea
 	}
 
 	if m.state == Normal {
@@ -135,11 +154,21 @@ func (m *TimeframeScreen) View() string {
 		style = style.PaddingLeft(horizontalPadding).PaddingRight(horizontalPadding)
 	}
 
-	m.list.SetSize(min(m.width, maxWidth), listHeight)
+	contentWidth := min(m.width, maxWidth)
 
-	view := lipgloss.JoinVertical(lipgloss.Left, header, m.list.View())
+	var body string
+	switch m.state {
+	case GotoDate:
+		m.list.SetSize(contentWidth, listHeight)
+		body = m.list.View()
+	case Normal:
+		m.list.SetSize(contentWidth, listHeight)
+		body = m.list.View()
+	}
 
-	if m.state != Normal {
+	view := lipgloss.JoinVertical(lipgloss.Left, header, body)
+
+	if m.state == GotoDate {
 		view = lipgloss.JoinVertical(lipgloss.Left, view, actionInput)
 	}
 
@@ -165,10 +194,10 @@ func (m *TimeframeScreen) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		return nil
 	}
 
-	switch {
-	case m.state == Normal:
+	switch m.state {
+	case Normal:
 		cmds = append(cmds, m.handleKeyMsgInNormalState(msg))
-	case m.state == GotoDate:
+	case GotoDate:
 		cmds = append(cmds, m.handleKeyMsgInGotoDateState(msg))
 	}
 
@@ -215,6 +244,10 @@ func (m *TimeframeScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 		m.actionInput.Placeholder = ""
 		m.actionInput.Prompt = "Jump to date: "
 		m.state = GotoDate
+	case key.Matches(msg, m.keys.searchGoals):
+		return func() tea.Msg {
+			return screens.OpenSearchScreen{}
+		}
 	}
 	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/db"
 	"hinoki-cli/internal/goal"
+	"strings"
 	"time"
 )
 
@@ -140,4 +141,42 @@ func updateGoal(goal goal.Goal) error {
 	_, err := db.ExecQuery("UPDATE goals SET title = ?, is_done = ?, timeframe = ?, date = ?, is_archived = ? WHERE id = ?", goal.Title, goal.IsDone, goal.Timeframe, goal.Date, goal.IsArchived, goal.ID)
 
 	return err
+}
+
+func SearchGoals(term string, limit int) ([]goal.Goal, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+
+	trimmed := strings.TrimSpace(term)
+	if trimmed == "" {
+		return []goal.Goal{}, nil
+	}
+
+	query := `
+		SELECT g.id, g.title, g.created_at, g.updated_at, g.is_done, g.timeframe, g.date, g.parent_id, p.title
+		FROM goals g
+		LEFT JOIN goals p ON g.parent_id = p.id
+		WHERE g.is_archived IS NOT true AND LOWER(g.title) LIKE ?
+		ORDER BY g.date IS NULL, g.date DESC, g.updated_at DESC
+		LIMIT ?
+	`
+
+	rows, err := db.QueryDB(query, "%"+strings.ToLower(trimmed)+"%", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var goals []goal.Goal
+
+	for rows.Next() {
+		var g goal.Goal
+		if err := rows.Scan(&g.ID, &g.Title, &g.CreatedAt, &g.UpdatedAt, &g.IsDone, &g.Timeframe, &g.Date, &g.ParentId, &g.ParentTitle); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+		goals = append(goals, g)
+	}
+
+	return goals, rows.Err()
 }
