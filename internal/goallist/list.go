@@ -235,6 +235,12 @@ func (m *GoalList) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 		}
 
 		return func() tea.Msg { return screens.OpenGoalDetailsScreen{Goal: &item.Goal} }
+	case key.Matches(msg, m.keys.showHierarchy):
+		if len(m.list.Items()) == 0 {
+			return nil
+		}
+
+		return func() tea.Msg { return screens.OpenHierarchyScreen{Goal: &item.Goal} }
 	}
 
 	return nil

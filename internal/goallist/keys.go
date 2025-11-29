@@ -10,6 +10,7 @@ type listKeyMap struct {
 	archiveGoal     key.Binding
 	changeDate      key.Binding
 	openGoalDetails key.Binding
+	showHierarchy   key.Binding
 }
 
 func NewListKeyMap() listKeyMap {
@@ -41,6 +42,10 @@ func NewListKeyMap() listKeyMap {
 		openGoalDetails: key.NewBinding(
 			key.WithKeys("enter"),
 			key.WithHelp("Enter", "Open goal details screen"),
+		),
+		showHierarchy: key.NewBinding(
+			key.WithKeys("v", "м"),
+			key.WithHelp("v", "Show goal hierarchy"),
 		),
 	}
 }

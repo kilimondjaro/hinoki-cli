@@ -5,6 +5,7 @@ import (
 	"hinoki-cli/internal/db"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/screens/goaldetails"
+	"hinoki-cli/internal/screens/hierarchy"
 	"hinoki-cli/internal/screens/overdue"
 	"hinoki-cli/internal/screens/search"
 	"hinoki-cli/internal/screens/timeframe"
@@ -112,6 +113,11 @@ func (m model) handleNavigation(msg tea.Msg) tea.Cmd {
 		overdueScreen.SetSize(m.width, m.height)
 		cmds = append(cmds, overdueScreen.Init())
 		m.navigation.Push(overdueScreen)
+	case screens.OpenHierarchyScreen:
+		hierarchyScreen := hierarchy.NewHierarchyScreen(msg.Goal)
+		hierarchyScreen.SetSize(m.width, m.height)
+		cmds = append(cmds, hierarchyScreen.Init())
+		m.navigation.Push(hierarchyScreen)
 	case screens.OpenGoalDetailsScreen:
 		goalDetailsScreen := goaldetails.NewGoalDetailsScreen(msg.Goal)
 		goalDetailsScreen.SetSize(m.width, m.height)

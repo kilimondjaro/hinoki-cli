@@ -181,12 +181,12 @@ func SearchGoals(term string, limit int) ([]goal.Goal, error) {
 		SELECT g.id, g.title, g.created_at, g.updated_at, g.is_done, g.timeframe, g.date, g.parent_id, p.title
 		FROM goals g
 		LEFT JOIN goals p ON g.parent_id = p.id
-		WHERE g.is_archived IS NOT true AND LOWER(g.title) LIKE ?
+		WHERE g.is_archived IS NOT true AND LOWER(g.title) LIKE LOWER(?)
 		ORDER BY g.date IS NULL, g.date DESC, g.updated_at DESC
 		LIMIT ?
 	`
 
-	rows, err := db.QueryDB(query, "%"+strings.ToLower(trimmed)+"%", limit)
+	rows, err := db.QueryDB(query, "%"+trimmed+"%", limit)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +203,38 @@ func SearchGoals(term string, limit int) ([]goal.Goal, error) {
 	}
 
 	return goals, rows.Err()
+}
+
+// GetAncestorChain retrieves all ancestors of a goal, from the goal itself up to the root parent
+// Returns goals in order from root (topmost parent) to the goal itself
+func GetAncestorChain(goalID string) ([]goal.Goal, error) {
+	var chain []goal.Goal
+	currentID := goalID
+	visited := make(map[string]bool) // Prevent infinite loops
+
+	for currentID != "" {
+		// Prevent infinite loops
+		if visited[currentID] {
+			break
+		}
+		visited[currentID] = true
+
+		g, err := GetGoalByID(currentID)
+		if err != nil || g == nil {
+			break
+		}
+
+		// Prepend to chain (we want root first, goal last)
+		chain = append([]goal.Goal{*g}, chain...)
+
+		// Move to parent
+		if g.ParentId == nil || *g.ParentId == "" {
+			break
+		}
+		currentID = *g.ParentId
+	}
+
+	return chain, nil
 }
 
 // GetOverdueGoals retrieves all undone goals that are overdue

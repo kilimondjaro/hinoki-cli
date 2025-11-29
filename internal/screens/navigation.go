@@ -31,6 +31,9 @@ type OpenSearchScreenForParent struct {
 	GoalID string
 }
 type OpenOverdueScreen struct{}
+type OpenHierarchyScreen struct {
+	Goal *goal.Goal
+}
 
 func (m *NavigationState) Push(screen Screen) {
 	m.stack = append(m.stack, screen)
