@@ -15,6 +15,7 @@ type listKeyMap struct {
 	gotoPeriod       key.Binding
 	searchGoals      key.Binding
 	goToParent       key.Binding
+	unlinkParent     key.Binding
 }
 
 func NewListKeyMap() listKeyMap {
@@ -66,6 +67,10 @@ func NewListKeyMap() listKeyMap {
 		goToParent: key.NewBinding(
 			key.WithKeys("p", "з"),
 			key.WithHelp("p", "Go to parent goal"),
+		),
+		unlinkParent: key.NewBinding(
+			key.WithKeys("u", "г"),
+			key.WithHelp("u", "Unlink from parent"),
 		),
 	}
 }

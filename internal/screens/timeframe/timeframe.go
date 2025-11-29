@@ -265,6 +265,12 @@ func (m *TimeframeScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 				GoalID: selectedGoal.ID,
 			}
 		}
+	case key.Matches(msg, m.keys.unlinkParent):
+		selectedGoal := m.list.GetSelectedGoal()
+		if selectedGoal == nil || selectedGoal.ParentId == nil {
+			return nil
+		}
+		return m.unlinkParentCmd(selectedGoal.ID)
 	}
 	return nil
 }
@@ -319,5 +325,24 @@ func (m *TimeframeScreen) goToParentGoalCmd(parentID string) tea.Cmd {
 			Date:      date,
 			GoalID:    parentGoal.ID,
 		}
+	}
+}
+
+func (m *TimeframeScreen) unlinkParentCmd(goalID string) tea.Cmd {
+	return func() tea.Msg {
+		goal, err := repository.GetGoalByID(goalID)
+		if err != nil || goal == nil {
+			return err
+		}
+
+		// Set parent_id to nil to unlink from parent
+		goal.ParentId = nil
+		err = repository.UpdateGoal(*goal)
+		if err != nil {
+			return err
+		}
+
+		// Return UpdateGoalSuccess to trigger refresh
+		return goallist.UpdateGoalSuccess{}
 	}
 }
