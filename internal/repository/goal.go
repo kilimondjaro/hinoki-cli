@@ -161,7 +161,7 @@ func AddGoal(goal goal.Goal) error {
 
 // UpdateGoal updates an existing goal in the database
 func UpdateGoal(goal goal.Goal) error {
-	_, err := db.ExecQuery("UPDATE goals SET title = ?, is_done = ?, timeframe = ?, date = ?, is_archived = ? WHERE id = ?", goal.Title, goal.IsDone, goal.Timeframe, goal.Date, goal.IsArchived, goal.ID)
+	_, err := db.ExecQuery("UPDATE goals SET title = ?, is_done = ?, timeframe = ?, date = ?, is_archived = ?, parent_id = ? WHERE id = ?", goal.Title, goal.IsDone, goal.Timeframe, goal.Date, goal.IsArchived, goal.ParentId, goal.ID)
 
 	return err
 }

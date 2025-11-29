@@ -21,6 +21,9 @@ type SearchScreen struct {
 	keys        keyMap
 
 	width, height int
+
+	// Parent assignment mode: if set, selecting a goal will assign it as parent
+	assignParentToGoalID string
 }
 
 var (
@@ -37,9 +40,17 @@ type searchGoalsResult struct {
 }
 
 func NewSearchScreen() screens.Screen {
+	return NewSearchScreenForParentAssignment("")
+}
+
+func NewSearchScreenForParentAssignment(goalID string) screens.Screen {
 	searchInput := textinput.New()
 	searchInput.Prompt = "Search: "
-	searchInput.Placeholder = "Type to find goals..."
+	if goalID != "" {
+		searchInput.Placeholder = "Type to find parent goal..."
+	} else {
+		searchInput.Placeholder = "Type to find goals..."
+	}
 	searchInput.CharLimit = 256
 	searchInput.Focus()
 
@@ -61,9 +72,10 @@ func NewSearchScreen() screens.Screen {
 	)
 
 	return &SearchScreen{
-		searchInput: searchInput,
-		searchList:  searchList,
-		keys:        newKeyMap(),
+		searchInput:          searchInput,
+		searchList:           searchList,
+		keys:                 newKeyMap(),
+		assignParentToGoalID: goalID,
 	}
 }
 
@@ -202,17 +214,61 @@ func (m *SearchScreen) openSelectedGoal() tea.Cmd {
 		return nil
 	}
 
-	goal := item.goal
-	if goal.Timeframe == nil || goal.Date == nil {
+	selectedGoal := item.goal
+
+	// If in parent assignment mode, assign the selected goal as parent
+	if m.assignParentToGoalID != "" {
+		return m.assignParentCmd(m.assignParentToGoalID, selectedGoal.ID)
+	}
+
+	// Otherwise, open the selected goal
+	if selectedGoal.Timeframe == nil || selectedGoal.Date == nil {
 		return nil
 	}
 
 	return func() tea.Msg {
 		return screens.OpenTimeframeScreenWithGoal{
-			Timeframe: *goal.Timeframe,
-			Date:      *goal.Date,
-			GoalID:    goal.ID,
+			Timeframe: *selectedGoal.Timeframe,
+			Date:      *selectedGoal.Date,
+			GoalID:    selectedGoal.ID,
 		}
+	}
+}
+
+func (m *SearchScreen) assignParentCmd(childGoalID string, parentGoalID string) tea.Cmd {
+	return func() tea.Msg {
+		childGoal, err := repository.GetGoalByID(childGoalID)
+		if err != nil || childGoal == nil {
+			return err
+		}
+
+		// Prevent circular reference: don't allow assigning a goal as its own parent
+		if childGoalID == parentGoalID {
+			return nil
+		}
+
+		// Prevent assigning a descendant as parent (check if parentGoalID is a descendant of childGoalID)
+		// For now, we'll do a simple check - prevent if parentGoalID has childGoalID as ancestor
+		// This is a simplified check - a full implementation would traverse the tree
+		parentGoal, err := repository.GetGoalByID(parentGoalID)
+		if err != nil || parentGoal == nil {
+			return err
+		}
+
+		// Check if we're trying to create a cycle
+		if parentGoal.ParentId != nil && *parentGoal.ParentId == childGoalID {
+			return nil
+		}
+
+		// Update the child goal with the new parent
+		childGoal.ParentId = &parentGoalID
+		err = repository.UpdateGoal(*childGoal)
+		if err != nil {
+			return err
+		}
+
+		// Go back to the previous screen
+		return screens.GoBack{}
 	}
 }
 
@@ -235,6 +291,10 @@ func (m *SearchScreen) searchGoalsCmd(term string) tea.Cmd {
 func (m *SearchScreen) handleSearchGoals(msg searchGoalsResult) {
 	items := make([]list.Item, 0, len(msg.goals))
 	for _, g := range msg.goals {
+		// In parent assignment mode, exclude the goal we're assigning a parent to
+		if m.assignParentToGoalID != "" && g.ID == m.assignParentToGoalID {
+			continue
+		}
 		items = append(items, searchItem{goal: g})
 	}
 	m.searchList.SetItems(items)

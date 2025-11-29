@@ -252,10 +252,19 @@ func (m *TimeframeScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 		}
 	case key.Matches(msg, m.keys.goToParent):
 		selectedGoal := m.list.GetSelectedGoal()
-		if selectedGoal == nil || selectedGoal.ParentId == nil {
+		if selectedGoal == nil {
 			return nil
 		}
-		return m.goToParentGoalCmd(*selectedGoal.ParentId)
+		// If goal has a parent, go to parent. Otherwise, open search to assign parent.
+		if selectedGoal.ParentId != nil {
+			return m.goToParentGoalCmd(*selectedGoal.ParentId)
+		}
+		// Open search screen for parent assignment
+		return func() tea.Msg {
+			return screens.OpenSearchScreenForParent{
+				GoalID: selectedGoal.ID,
+			}
+		}
 	}
 	return nil
 }

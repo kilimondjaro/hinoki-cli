@@ -101,6 +101,11 @@ func (m model) handleNavigation(msg tea.Msg) tea.Cmd {
 		searchScreen.SetSize(m.width, m.height)
 		cmds = append(cmds, searchScreen.Init())
 		m.navigation.Push(searchScreen)
+	case screens.OpenSearchScreenForParent:
+		searchScreen := search.NewSearchScreenForParentAssignment(msg.GoalID)
+		searchScreen.SetSize(m.width, m.height)
+		cmds = append(cmds, searchScreen.Init())
+		m.navigation.Push(searchScreen)
 	case screens.OpenGoalDetailsScreen:
 		goalDetailsScreen := goaldetails.NewGoalDetailsScreen(msg.Goal)
 		goalDetailsScreen.SetSize(m.width, m.height)
