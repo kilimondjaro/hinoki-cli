@@ -5,6 +5,7 @@ import (
 	"hinoki-cli/internal/db"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/screens/goaldetails"
+	"hinoki-cli/internal/screens/overdue"
 	"hinoki-cli/internal/screens/search"
 	"hinoki-cli/internal/screens/timeframe"
 	"log"
@@ -106,6 +107,11 @@ func (m model) handleNavigation(msg tea.Msg) tea.Cmd {
 		searchScreen.SetSize(m.width, m.height)
 		cmds = append(cmds, searchScreen.Init())
 		m.navigation.Push(searchScreen)
+	case screens.OpenOverdueScreen:
+		overdueScreen := overdue.NewOverdueScreen()
+		overdueScreen.SetSize(m.width, m.height)
+		cmds = append(cmds, overdueScreen.Init())
+		m.navigation.Push(overdueScreen)
 	case screens.OpenGoalDetailsScreen:
 		goalDetailsScreen := goaldetails.NewGoalDetailsScreen(msg.Goal)
 		goalDetailsScreen.SetSize(m.width, m.height)

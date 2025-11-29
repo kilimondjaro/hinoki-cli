@@ -5,6 +5,7 @@ import "hinoki-cli/internal/goal"
 const (
 	Timeframe = iota
 	Subgoal
+	Overdue
 )
 
 type GoalItem struct {

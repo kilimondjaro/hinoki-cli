@@ -271,6 +271,10 @@ func (m *TimeframeScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 			return nil
 		}
 		return m.unlinkParentCmd(selectedGoal.ID)
+	case key.Matches(msg, m.keys.openOverdue):
+		return func() tea.Msg {
+			return screens.OpenOverdueScreen{}
+		}
 	}
 	return nil
 }

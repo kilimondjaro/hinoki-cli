@@ -62,11 +62,32 @@ func (d GoalItemDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 
 	if i.mode == Subgoal && i.Date != nil && i.Timeframe != nil {
 		dateTime = "\n    " + dates.DateString(*i.Date, *i.Timeframe)
+	} else if i.mode == Overdue && i.Timeframe != nil {
+		// Format similar to search screen: Timeframe • Date • Parent: ParentTitle
+		timeframe := i.Timeframe.String()
+		date := ""
+		if i.Date != nil {
+			date = dates.DateString(*i.Date, *i.Timeframe)
+		}
+
+		meta := timeframe
+		if date != "" {
+			meta = fmt.Sprintf("%s • %s", meta, date)
+		}
+
+		if i.ParentTitle != nil {
+			meta = fmt.Sprintf("%s • Parent: %s", meta, *i.ParentTitle)
+		}
+
+		dateTime = "\n    " + meta
 	}
 
-	str := fmt.Sprintf("[%s] %s%s", checkmark, i.Title, parentStyle.Render(dateTime))
+	dateTimeRendered := parentStyle.Render(dateTime)
 
-	if i.ParentId != nil && i.ParentTitle != nil {
+	str := fmt.Sprintf("[%s] %s%s", checkmark, i.Title, dateTimeRendered)
+
+	// For non-overdue modes, show parent on separate line if exists
+	if i.mode != Overdue && i.ParentId != nil && i.ParentTitle != nil {
 		str = fmt.Sprintf("%s\n    %s", str, parentStyle.Render(*i.ParentTitle))
 	}
 

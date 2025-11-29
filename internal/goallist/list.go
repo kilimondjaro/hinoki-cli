@@ -35,6 +35,7 @@ type GoalList struct {
 	date           *time.Time
 	parent         *goal.Goal
 	goalIDToSelect string
+	displayMode    int // Timeframe, Subgoal, or Overdue
 
 	width, height int
 }
@@ -45,7 +46,7 @@ var (
 )
 
 type GoalsResult struct {
-	goals []goal.Goal
+	Goals []goal.Goal
 }
 
 type AddGoalSuccess struct{}
@@ -80,7 +81,7 @@ func NewGoalList(timeframe *goal.Timeframe, date *time.Time) GoalList {
 	actionInput := textinput.New()
 	actionInput.Focus()
 
-	return GoalList{list: l, keys: keys, state: Initial, actionInput: actionInput, timeframe: timeframe, date: date}
+	return GoalList{list: l, keys: keys, state: Initial, actionInput: actionInput, timeframe: timeframe, date: date, displayMode: Timeframe}
 }
 
 func (m *GoalList) Init() tea.Cmd {
@@ -174,7 +175,7 @@ func (m *GoalList) getGoalsCmd() func() tea.Msg {
 			return err
 		}
 
-		return GoalsResult{goals: goals}
+		return GoalsResult{Goals: goals}
 	}
 }
 
@@ -289,13 +290,13 @@ func (m *GoalList) handleGoalResult(msg GoalsResult) {
 
 	var items []list.Item
 
-	mode := Timeframe
+	mode := m.displayMode
 
 	if m.parent != nil {
 		mode = Subgoal
 	}
 
-	for _, goal := range msg.goals {
+	for _, goal := range msg.Goals {
 		items = append(items, GoalItem{Goal: goal, mode: mode})
 	}
 	m.list.SetItems(items)
@@ -321,6 +322,10 @@ func (m *GoalList) SelectGoalByID(goalID string) {
 
 func (m *GoalList) SetGoalIDToSelect(goalID string) {
 	m.goalIDToSelect = goalID
+}
+
+func (m *GoalList) SetDisplayMode(mode int) {
+	m.displayMode = mode
 }
 
 func (m *GoalList) GetSelectedGoal() *goal.Goal {

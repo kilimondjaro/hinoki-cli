@@ -470,3 +470,37 @@ func ChangePeriod(t time.Time, timeframe goal.Timeframe, by int) time.Time {
 	}
 	return t
 }
+
+// IsOverdue checks if a goal is overdue based on its date and timeframe
+// A goal is overdue if it has a date and timeframe, and the period has passed
+func IsOverdue(date *time.Time, timeframe *goal.Timeframe) bool {
+	if date == nil || timeframe == nil {
+		return false
+	}
+
+	now := time.Now()
+	today := DateWithoutTime(now)
+
+	switch *timeframe {
+	case goal.Day:
+		return DateWithoutTime(*date).Before(today)
+	case goal.Week:
+		return EndOfWeek(*date).Before(today)
+	case goal.Month:
+		// Check if the month has passed
+		goalMonth := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+		currentMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		return goalMonth.Before(currentMonth)
+	case goal.Quarter:
+		return EndOfQuarter(*date).Before(now)
+	case goal.Year:
+		goalYear := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, date.Location())
+		currentYear := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, now.Location())
+		return goalYear.Before(currentYear)
+	case goal.Life:
+		// Life goals are never overdue
+		return false
+	}
+
+	return false
+}

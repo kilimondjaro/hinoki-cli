@@ -204,3 +204,54 @@ func SearchGoals(term string, limit int) ([]goal.Goal, error) {
 
 	return goals, rows.Err()
 }
+
+// GetOverdueGoals retrieves all undone goals that are overdue
+// A goal is overdue if it has a date and timeframe, is not done, and the period has passed
+func GetOverdueGoals() ([]goal.Goal, error) {
+	today := dates.DateWithoutTime(time.Now())
+
+	baseQuery := `
+		SELECT g.id, g.title, g.created_at, g.updated_at, g.is_done, g.timeframe, g.date, g.parent_id, p.title
+		FROM goals g
+		LEFT JOIN goals p ON g.parent_id = p.id
+		WHERE g.is_archived IS NOT true 
+		AND g.is_done = 0
+		AND g.timeframe IS NOT NULL
+		AND g.date IS NOT NULL
+		AND (
+			(g.timeframe = 'day' AND DATE(g.date) < ?)
+			OR (g.timeframe = 'week' AND DATE(g.date) < ?)
+			OR (g.timeframe = 'month' AND DATE(g.date) < ?)
+			OR (g.timeframe = 'quarter' AND DATE(g.date) < ?)
+			OR (g.timeframe = 'year' AND DATE(g.date) < ?)
+		)
+		ORDER BY g.date DESC, g.created_at DESC
+	`
+
+	// Initial SQL filter to get potential overdue goals
+	// The dates.IsOverdue function will do the final accurate check
+	todayStr := dates.TimeframeDateString(today)
+
+	rows, err := db.QueryDB(baseQuery, todayStr, todayStr, todayStr, todayStr, todayStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var goals []goal.Goal
+
+	for rows.Next() {
+		var g goal.Goal
+		if err := rows.Scan(&g.ID, &g.Title, &g.CreatedAt, &g.UpdatedAt, &g.IsDone, &g.Timeframe, &g.Date, &g.ParentId, &g.ParentTitle); err != nil {
+			return nil, fmt.Errorf("scan failed: %w", err)
+		}
+
+		// Additional check: filter out goals that aren't actually overdue
+		// This handles edge cases for week/month/quarter/year timeframes
+		if dates.IsOverdue(g.Date, g.Timeframe) {
+			goals = append(goals, g)
+		}
+	}
+
+	return goals, rows.Err()
+}

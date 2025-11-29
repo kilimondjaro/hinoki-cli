@@ -16,6 +16,7 @@ type listKeyMap struct {
 	searchGoals      key.Binding
 	goToParent       key.Binding
 	unlinkParent     key.Binding
+	openOverdue      key.Binding
 }
 
 func NewListKeyMap() listKeyMap {
@@ -71,6 +72,10 @@ func NewListKeyMap() listKeyMap {
 		unlinkParent: key.NewBinding(
 			key.WithKeys("u", "г"),
 			key.WithHelp("u", "Unlink from parent"),
+		),
+		openOverdue: key.NewBinding(
+			key.WithKeys("o", "щ"),
+			key.WithHelp("o", "Open overdue goals"),
 		),
 	}
 }
