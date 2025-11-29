@@ -3,6 +3,7 @@ package goallist
 import (
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/goal"
+	"hinoki-cli/internal/repository"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/theme"
 	"time"
@@ -163,10 +164,10 @@ func (m *GoalList) getGoalsCmd() func() tea.Msg {
 
 		if m.parent != nil {
 			// Goals details view subgoals mode
-			goals, err = getGoalsByParent(m.parent.ID)
+			goals, err = repository.GetGoalsByParent(m.parent.ID)
 		} else if m.timeframe != nil && m.date != nil {
 			// Timeframe mode
-			goals, err = getGoalsByDate(*m.timeframe, *m.date)
+			goals, err = repository.GetGoalsByDate(*m.timeframe, *m.date)
 		}
 
 		if err != nil {
@@ -335,7 +336,7 @@ func (m *GoalList) GetSelectedGoal() *goal.Goal {
 
 func (m *GoalList) addGoalCmd(goal goal.Goal) func() tea.Msg {
 	return func() tea.Msg {
-		err := addGoal(goal)
+		err := repository.AddGoal(goal)
 		if err != nil {
 			return err
 		}
@@ -346,7 +347,7 @@ func (m *GoalList) addGoalCmd(goal goal.Goal) func() tea.Msg {
 
 func (m *GoalList) updateGoalCmd(goal goal.Goal) func() tea.Msg {
 	return func() tea.Msg {
-		err := updateGoal(goal)
+		err := repository.UpdateGoal(goal)
 		if err != nil {
 			return err
 		}

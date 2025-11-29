@@ -6,6 +6,7 @@ import (
 	"hinoki-cli/internal/dates"
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/goallist"
+	"hinoki-cli/internal/repository"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/theme"
 
@@ -284,18 +285,29 @@ func (m *TimeframeScreen) handleKeyMsgInGotoDateState(msg tea.KeyMsg) tea.Cmd {
 
 func (m *TimeframeScreen) goToParentGoalCmd(parentID string) tea.Cmd {
 	return func() tea.Msg {
-		parentGoal, err := goallist.GetGoalByID(parentID)
+		parentGoal, err := repository.GetGoalByID(parentID)
 		if err != nil || parentGoal == nil {
 			return nil
 		}
 
-		if parentGoal.Timeframe == nil || parentGoal.Date == nil {
+		if parentGoal.Timeframe == nil {
+			return nil
+		}
+
+		// Life goals don't have dates, so use current time
+		var date time.Time
+		if parentGoal.Date != nil {
+			date = *parentGoal.Date
+		} else if *parentGoal.Timeframe == goal.Life {
+			date = time.Now()
+		} else {
+			// Other timeframes require a date
 			return nil
 		}
 
 		return screens.OpenTimeframeScreenWithGoal{
 			Timeframe: *parentGoal.Timeframe,
-			Date:      *parentGoal.Date,
+			Date:      date,
 			GoalID:    parentGoal.ID,
 		}
 	}

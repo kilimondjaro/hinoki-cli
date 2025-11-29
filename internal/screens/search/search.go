@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"hinoki-cli/internal/goal"
-	"hinoki-cli/internal/goallist"
+	"hinoki-cli/internal/repository"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/theme"
 
@@ -224,7 +224,7 @@ func (m *SearchScreen) searchGoalsCmd(term string) tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		goals, err := goallist.SearchGoals(trimmed, 50)
+		goals, err := repository.SearchGoals(trimmed, 50)
 		if err != nil {
 			return err
 		}

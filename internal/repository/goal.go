@@ -1,4 +1,4 @@
-package goallist
+package repository
 
 import (
 	"database/sql"
@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-func getGoalsByParent(parentId string) ([]goal.Goal, error) {
+// GetGoalsByParent retrieves all goals that have the specified parent ID
+func GetGoalsByParent(parentId string) ([]goal.Goal, error) {
 	var rows *sql.Rows
 	var err error
 
@@ -52,7 +53,8 @@ func getGoalsByParent(parentId string) ([]goal.Goal, error) {
 	return goals, rows.Err()
 }
 
-func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, error) {
+// GetGoalsByDate retrieves all goals for a specific timeframe and date
+func GetGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, error) {
 	var rows *sql.Rows
 	var err error
 
@@ -131,11 +133,12 @@ func getGoalsByDate(timeframe goal.Timeframe, date time.Time) ([]goal.Goal, erro
 	return goals, rows.Err()
 }
 
+// GetGoalByID retrieves a single goal by its ID
 func GetGoalByID(goalID string) (*goal.Goal, error) {
 	query := `
-		SELECT id, parent_id, title, created_at, updated_at, is_done, timeframe, date, is_archived
+		SELECT id, parent_id, title, created_at, updated_at, is_done, timeframe, date, COALESCE(is_archived, 0) as is_archived
 		FROM goals
-		WHERE id = ? AND is_archived IS NOT true
+		WHERE id = ? AND COALESCE(is_archived, 0) = 0
 	`
 
 	row := db.QueryRowDB(query, goalID)
@@ -149,18 +152,21 @@ func GetGoalByID(goalID string) (*goal.Goal, error) {
 	return &g, nil
 }
 
-func addGoal(goal goal.Goal) error {
+// AddGoal creates a new goal in the database
+func AddGoal(goal goal.Goal) error {
 	_, err := db.ExecQuery("INSERT INTO goals (id, parent_id, title, is_done, timeframe, date) VALUES (?, ?, ?, ?, ?, ?)", goal.ID, goal.ParentId, goal.Title, goal.IsDone, goal.Timeframe, goal.Date)
 
 	return err
 }
 
-func updateGoal(goal goal.Goal) error {
+// UpdateGoal updates an existing goal in the database
+func UpdateGoal(goal goal.Goal) error {
 	_, err := db.ExecQuery("UPDATE goals SET title = ?, is_done = ?, timeframe = ?, date = ?, is_archived = ? WHERE id = ?", goal.Title, goal.IsDone, goal.Timeframe, goal.Date, goal.IsArchived, goal.ID)
 
 	return err
 }
 
+// SearchGoals searches for goals matching the given search term
 func SearchGoals(term string, limit int) ([]goal.Goal, error) {
 	if limit <= 0 {
 		limit = 20
