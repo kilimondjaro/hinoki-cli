@@ -1,8 +1,16 @@
 package hierarchy
 
-type keyMap struct{}
+import "github.com/charmbracelet/bubbles/key"
 
-func newKeyMap() keyMap {
-	return keyMap{}
+type keyMap struct {
+	showAllTree key.Binding
 }
 
+func newKeyMap() keyMap {
+	return keyMap{
+		showAllTree: key.NewBinding(
+			key.WithKeys("a", "ф"),
+			key.WithHelp("a", "Show full tree"),
+		),
+	}
+}
