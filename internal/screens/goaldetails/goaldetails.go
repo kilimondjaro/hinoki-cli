@@ -1,11 +1,14 @@
 package goaldetails
 
 import (
+	"time"
+
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/goallist"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/theme"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -161,6 +164,12 @@ func (m *GoalDetailsScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 		return func() tea.Msg {
 			return screens.GoBack{}
 		}
+	case key.Matches(msg, m.keys.openGoal):
+		selectedGoal := m.list.GetSelectedGoal()
+		if selectedGoal == nil {
+			return nil
+		}
+		return m.openChildGoalCmd(selectedGoal)
 	}
 	return nil
 }
@@ -177,4 +186,30 @@ func (m *GoalDetailsScreen) handleKeyMsgInGotoDateState(msg tea.KeyMsg) tea.Cmd 
 
 	m.actionInput, cmd = m.actionInput.Update(msg)
 	return cmd
+}
+
+func (m *GoalDetailsScreen) openChildGoalCmd(childGoal *goal.Goal) tea.Cmd {
+	return func() tea.Msg {
+		// Check if the child goal has a timeframe and date
+		if childGoal.Timeframe == nil {
+			return nil
+		}
+
+		// Life goals don't have dates, so use current time
+		var date time.Time
+		if childGoal.Date != nil {
+			date = *childGoal.Date
+		} else if *childGoal.Timeframe == goal.Life {
+			date = time.Now()
+		} else {
+			// Other timeframes require a date
+			return nil
+		}
+
+		return screens.OpenTimeframeScreenWithGoal{
+			Timeframe: *childGoal.Timeframe,
+			Date:      date,
+			GoalID:    childGoal.ID,
+		}
+	}
 }
