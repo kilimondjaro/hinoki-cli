@@ -19,7 +19,22 @@ type HierarchyScreen struct {
 	keys      keyMap
 	showAll   bool // Toggle for showing full tree vs just ancestors
 
+	// Navigation state
+	cursor         int        // Index of currently selected item in flattened list
+	scrollOffset   int        // Number of lines scrolled up
+	flattenedItems []TreeItem // Flattened list of all tree items for navigation
+
 	width, height int
+}
+
+// TreeItem represents a single item in the flattened tree for navigation
+type TreeItem struct {
+	goal      goal.Goal
+	prefix    string // Tree characters (├─, └─, etc.)
+	status    string // Status indicator (✓, ○)
+	style     lipgloss.Style
+	isCurrent bool
+	depth     int
 }
 
 var (
@@ -75,6 +90,8 @@ func NewHierarchyScreen(goal *goal.Goal) screens.Screen {
 }
 
 func (m *HierarchyScreen) Init() tea.Cmd {
+	m.cursor = 0
+	m.scrollOffset = 0
 	return m.getAncestorChainCmd()
 }
 
@@ -84,9 +101,11 @@ func (m *HierarchyScreen) Update(msg tea.Msg) tea.Cmd {
 		return m.handleKeyMsg(msg)
 	case AncestorChainResult:
 		m.ancestors = msg.ancestors
+		m.updateFlattenedItems()
 	case FullTreeResult:
 		// Convert tree nodes back to ancestors for rendering
 		m.ancestors = m.treeNodesToGoals(msg.treeNodes)
+		m.updateFlattenedItems()
 	case error:
 		// swallow errors in UI loop
 	}
@@ -124,6 +143,8 @@ func (m *HierarchyScreen) View() string {
 func (m *HierarchyScreen) SetSize(width, height int) {
 	m.width = width
 	m.height = height
+	// Adjust scroll offset when window size changes to ensure cursor is still visible
+	m.adjustScrollOffset()
 }
 
 func (m *HierarchyScreen) Refresh() tea.Cmd {
@@ -138,10 +159,16 @@ func (m *HierarchyScreen) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		}
 	case key.Matches(msg, m.keys.showAllTree):
 		m.showAll = !m.showAll
+		m.cursor = 0
+		m.scrollOffset = 0
 		if m.showAll {
 			return m.getFullTreeCmd()
 		}
 		return m.getAncestorChainCmd()
+	case key.Matches(msg, m.keys.cursorUp):
+		m.moveCursor(-1)
+	case key.Matches(msg, m.keys.cursorDown):
+		m.moveCursor(1)
 	}
 
 	return nil
@@ -162,103 +189,93 @@ func (m *HierarchyScreen) renderTree(width, height int) string {
 		return metaStyle.Render("Loading...")
 	}
 
-	if m.showAll {
-		return m.renderFullTree(width, height)
+	if len(m.flattenedItems) == 0 {
+		return metaStyle.Render("Loading...")
 	}
 
-	return m.renderAncestorChain(width, height)
+	return m.renderFlattenedTree(width, height)
 }
 
-func (m *HierarchyScreen) renderAncestorChain(width, height int) string {
+// renderFlattenedTree renders the visible portion of the flattened tree
+// height parameter is the available content height (already accounting for header)
+func (m *HierarchyScreen) renderFlattenedTree(width, height int) string {
+	if len(m.flattenedItems) == 0 {
+		return metaStyle.Render("Loading...")
+	}
+
+	// height is already the content height, so we can use it directly
+	// Account for any padding/margins (subtract a small buffer)
+	maxVisibleItems := max(1, height-1)
+
+	// Calculate visible range
+	startIdx := m.scrollOffset
+	endIdx := min(startIdx+maxVisibleItems, len(m.flattenedItems))
+
+	// Ensure the cursor is always included in the visible range
+	if m.cursor >= startIdx && m.cursor < len(m.flattenedItems) {
+		// If cursor is beyond endIdx, extend endIdx to include it
+		if m.cursor >= endIdx {
+			endIdx = m.cursor + 1
+		}
+		// Ensure we don't go beyond the list
+		endIdx = min(endIdx, len(m.flattenedItems))
+	}
+
 	var lines []string
+	for i := startIdx; i < endIdx; i++ {
+		item := m.flattenedItems[i]
+		isSelected := i == m.cursor
 
-	// Render the tree from root to current goal
-	for i, g := range m.ancestors {
-		isLast := i == len(m.ancestors)-1
-		isCurrent := i == len(m.ancestors)-1
-		isRoot := i == 0
-
-		// Build indentation and tree characters
-		var prefix string
-		if isRoot {
-			// Root - show with special indicator
-			prefix = treeCharStyle.Render("┌─ ")
-		} else if isLast {
-			// Current goal - use └─
-			prefix = treeCharStyle.Render("└─ ")
-		} else {
-			// Intermediate ancestor - use ├─
-			prefix = treeCharStyle.Render("├─ ")
+		// Skip empty connector lines when rendering
+		if item.goal.ID == "" && item.status == "" {
+			// This is a connector line
+			lines = append(lines, treeCharStyle.Render(item.prefix))
+			continue
 		}
 
-		// Determine style
-		var goalStyle lipgloss.Style
-		if isRoot {
-			goalStyle = rootStyle
-		} else if isCurrent {
-			goalStyle = currentStyle
-		} else {
-			goalStyle = ancestorStyle
+		// Determine if this item should be highlighted (selected)
+		var itemStyle lipgloss.Style = item.style
+		if isSelected {
+			// Highlight selected item - invert colors for visibility
+			if lipgloss.HasDarkBackground() {
+				itemStyle = item.style.Copy().Background(theme.TextSelected()).Foreground(theme.TextPrimary())
+			} else {
+				itemStyle = item.style.Copy().Foreground(theme.TextSelected()).Bold(true)
+			}
 		}
 
-		// Add status indicator with appropriate styling
+		// Render prefix
+		prefix := treeCharStyle.Render(item.prefix)
+
+		// Render status
 		var status string
-		if g.IsDone {
-			status = metaStyle.Render("✓")
-		} else {
-			status = metaStyle.Render("○")
+		if item.status != "" {
+			status = metaStyle.Render(item.status) + " "
 		}
 
-		// Build the goal line
-		goalLine := goalStyle.Render(g.Title)
+		// Render goal line
+		goalLine := itemStyle.Render(item.goal.Title)
 
-		// Add metadata (timeframe and date)
-		meta := m.formatMeta(&g)
-		if meta != "" {
-			goalLine = fmt.Sprintf("%s %s", goalLine, metaStyle.Render(meta))
+		// Add metadata if this is a real goal (not a connector)
+		if item.goal.ID != "" {
+			meta := m.formatMeta(&item.goal)
+			if meta != "" {
+				goalLine = fmt.Sprintf("%s %s", goalLine, metaStyle.Render(meta))
+			}
 		}
 
-		// Combine prefix, status, and goal line
-		fullLine := fmt.Sprintf("%s%s %s", prefix, status, goalLine)
-
-		if !isLast && !isRoot {
-			lines = append(lines, treeCharStyle.Render("│ "))
-		}
-
+		// Combine everything
+		fullLine := fmt.Sprintf("%s%s%s", prefix, status, goalLine)
 		lines = append(lines, fullLine)
-
-		// Add vertical connector for non-last items (except root)
-		if !isLast && !isRoot {
-			lines = append(lines, treeCharStyle.Render("│ "))
-		}
 	}
-
-	// Join all lines with no extra spacing
-	treeContent := lipgloss.JoinVertical(lipgloss.Left, lines...)
-
-	// Wrap in a container with proper width and no extra padding
-	return lipgloss.NewStyle().
-		Width(width).
-		MaxHeight(height).
-		Render(treeContent)
-}
-
-func (m *HierarchyScreen) renderFullTree(width, height int) string {
-	// Build tree structure
-	treeNodes := m.buildFullTree()
-
-	// Render tree nodes recursively
-	// Start with empty prefix and mark as root level
-	var lines []string
-	m.renderTreeNode(treeNodes, &lines, "", false, true)
 
 	// Join all lines
 	treeContent := lipgloss.JoinVertical(lipgloss.Left, lines...)
 
 	// Wrap in a container with proper width
+	// Don't use MaxHeight here as it might cut off content - height is already constrained
 	return lipgloss.NewStyle().
 		Width(width).
-		MaxHeight(height).
 		Render(treeContent)
 }
 
@@ -348,81 +365,6 @@ func (m *HierarchyScreen) getChildrenRecursive(goalID string, depth int) []TreeN
 	return childNodes
 }
 
-func (m *HierarchyScreen) renderTreeNode(nodes []TreeNode, lines *[]string, prefix string, _ bool, isRoot bool) {
-	for i, node := range nodes {
-		isNodeLast := i == len(nodes)-1
-
-		// Determine tree characters for this node
-		// Only use ┌─ for the very first root node
-		var connector string
-		if isRoot && i == 0 && len(nodes) == 1 {
-			connector = treeCharStyle.Render("   ")
-		} else if isNodeLast {
-			connector = treeCharStyle.Render("└─ ")
-		} else {
-			connector = treeCharStyle.Render("├─ ")
-		}
-
-		// Determine style
-		var goalStyle lipgloss.Style
-		if node.depth == 0 {
-			goalStyle = rootStyle
-		} else if node.isCurrent {
-			goalStyle = currentStyle
-		} else {
-			goalStyle = ancestorStyle
-		}
-
-		// Add status indicator
-		var status string
-		if node.goal.IsDone {
-			status = metaStyle.Render("✓")
-		} else {
-			status = metaStyle.Render("○")
-		}
-
-		// Build the goal line
-		goalLine := goalStyle.Render(node.goal.Title)
-
-		// Add metadata
-		meta := m.formatMeta(&node.goal)
-		if meta != "" {
-			goalLine = fmt.Sprintf("%s %s", goalLine, metaStyle.Render(meta))
-		}
-
-		// Combine everything
-		fullLine := fmt.Sprintf("%s%s%s %s", prefix, connector, status, goalLine)
-		*lines = append(*lines, fullLine)
-
-		// Render children if any
-		if len(node.children) > 0 {
-			// Build prefix for children - properly indent based on parent's position
-			childPrefix := prefix
-			if !isRoot {
-				// If this node is last, use spaces; otherwise use vertical line
-				if isNodeLast {
-					childPrefix += treeCharStyle.Render("   ")
-				} else {
-					childPrefix += treeCharStyle.Render("│  ")
-				}
-			} else {
-				// For root level, add spacing for children
-				childPrefix += treeCharStyle.Render("   ")
-			}
-
-			// Recursively render children with proper indentation
-			// Pass isNodeLast so children know if their parent is the last sibling
-			m.renderTreeNode(node.children, lines, childPrefix, isNodeLast, false)
-		}
-
-		// Add vertical connector after node if it's not the last and has siblings after
-		// Only add if node has no children (to avoid double connectors)
-		if !isNodeLast && !isRoot && len(node.children) == 0 {
-			*lines = append(*lines, prefix+treeCharStyle.Render("│ "))
-		}
-	}
-}
-
 func (m *HierarchyScreen) treeNodesToGoals(nodes []TreeNode) []goal.Goal {
 	// Flatten tree nodes back to goals for simple ancestor view
 	var goals []goal.Goal
@@ -487,4 +429,322 @@ func (m *HierarchyScreen) formatMeta(g *goal.Goal) string {
 		return fmt.Sprintf("• %s • %s", timeframe, date)
 	}
 	return fmt.Sprintf("• %s", timeframe)
+}
+
+// updateFlattenedItems creates a flattened list of all tree items for navigation
+func (m *HierarchyScreen) updateFlattenedItems() {
+	m.flattenedItems = []TreeItem{}
+
+	if len(m.ancestors) == 0 {
+		return
+	}
+
+	if m.showAll {
+		treeNodes := m.buildFullTree()
+		m.flattenTreeNodes(treeNodes, "", false, true)
+	} else {
+		m.flattenAncestorChain()
+	}
+
+	// Set cursor to current goal if it exists, otherwise keep current position
+	if m.goal != nil {
+		for i, item := range m.flattenedItems {
+			if item.goal.ID == m.goal.ID {
+				m.cursor = i
+				break
+			}
+		}
+	}
+
+	// Ensure cursor is within bounds and points to a valid item (not a connector)
+	if m.cursor >= len(m.flattenedItems) {
+		m.cursor = max(0, len(m.flattenedItems)-1)
+	}
+
+	// If cursor is on a connector line, find the nearest valid item
+	if m.cursor < len(m.flattenedItems) && m.flattenedItems[m.cursor].goal.ID == "" {
+		// Try to find a valid item nearby
+		found := false
+		// First try going forward
+		for i := m.cursor; i < len(m.flattenedItems); i++ {
+			if m.flattenedItems[i].goal.ID != "" {
+				m.cursor = i
+				found = true
+				break
+			}
+		}
+		// If not found, go backward
+		if !found {
+			for i := m.cursor; i >= 0; i-- {
+				if m.flattenedItems[i].goal.ID != "" {
+					m.cursor = i
+					break
+				}
+			}
+		}
+	}
+
+	// Adjust scroll to show cursor
+	m.adjustScrollOffset()
+}
+
+// flattenAncestorChain flattens the ancestor chain into navigable items
+func (m *HierarchyScreen) flattenAncestorChain() {
+	for i, g := range m.ancestors {
+		isLast := i == len(m.ancestors)-1
+		isCurrent := i == len(m.ancestors)-1
+		isRoot := i == 0
+
+		var prefix string
+		if isRoot {
+			prefix = "┌─ "
+		} else if isLast {
+			prefix = "└─ "
+		} else {
+			prefix = "├─ "
+		}
+
+		var goalStyle lipgloss.Style
+		if isRoot {
+			goalStyle = rootStyle
+		} else if isCurrent {
+			goalStyle = currentStyle
+		} else {
+			goalStyle = ancestorStyle
+		}
+
+		var status string
+		if g.IsDone {
+			status = "✓"
+		} else {
+			status = "○"
+		}
+
+		m.flattenedItems = append(m.flattenedItems, TreeItem{
+			goal:      g,
+			prefix:    prefix,
+			status:    status,
+			style:     goalStyle,
+			isCurrent: isCurrent,
+			depth:     i,
+		})
+
+		// Add vertical connector lines for non-last items (except root)
+		if !isLast && !isRoot {
+			m.flattenedItems = append(m.flattenedItems, TreeItem{
+				goal:      goal.Goal{}, // Empty goal for connector lines
+				prefix:    "│ ",
+				status:    "",
+				style:     treeCharStyle,
+				isCurrent: false,
+				depth:     i,
+			})
+		}
+	}
+}
+
+// flattenTreeNodes recursively flattens tree nodes into navigable items
+func (m *HierarchyScreen) flattenTreeNodes(nodes []TreeNode, prefix string, _ bool, isRoot bool) {
+	for i, node := range nodes {
+		isNodeLast := i == len(nodes)-1
+
+		var connector string
+		if isRoot && i == 0 && len(nodes) == 1 {
+			connector = "   "
+		} else if isNodeLast {
+			connector = "└─ "
+		} else {
+			connector = "├─ "
+		}
+
+		var goalStyle lipgloss.Style
+		if node.depth == 0 {
+			goalStyle = rootStyle
+		} else if node.isCurrent {
+			goalStyle = currentStyle
+		} else {
+			goalStyle = ancestorStyle
+		}
+
+		var status string
+		if node.goal.IsDone {
+			status = "✓"
+		} else {
+			status = "○"
+		}
+
+		m.flattenedItems = append(m.flattenedItems, TreeItem{
+			goal:      node.goal,
+			prefix:    prefix + connector,
+			status:    status,
+			style:     goalStyle,
+			isCurrent: node.isCurrent,
+			depth:     node.depth,
+		})
+
+		// Render children if any
+		if len(node.children) > 0 {
+			childPrefix := prefix
+			if !isRoot {
+				if isNodeLast {
+					childPrefix += "   "
+				} else {
+					childPrefix += "│  "
+				}
+			} else {
+				childPrefix += "   "
+			}
+			m.flattenTreeNodes(node.children, childPrefix, isNodeLast, false)
+		}
+
+		// Add vertical connector after node if needed
+		if !isNodeLast && !isRoot && len(node.children) == 0 {
+			m.flattenedItems = append(m.flattenedItems, TreeItem{
+				goal:      goal.Goal{},
+				prefix:    prefix + "│ ",
+				status:    "",
+				style:     treeCharStyle,
+				isCurrent: false,
+				depth:     node.depth,
+			})
+		}
+	}
+}
+
+// moveCursor moves the cursor up or down and adjusts scroll offset
+// It skips connector lines (items with empty goal.ID) to ensure cursor always points to a valid goal
+func (m *HierarchyScreen) moveCursor(delta int) {
+	if len(m.flattenedItems) == 0 {
+		return
+	}
+
+	// Start from the next position
+	startPos := m.cursor + delta
+
+	// Search for the next valid item in the direction of movement
+	if delta < 0 {
+		// Moving up: search backwards from start position
+		for i := startPos; i >= 0; i-- {
+			if i < len(m.flattenedItems) && m.flattenedItems[i].goal.ID != "" {
+				m.cursor = i
+				m.adjustScrollOffset()
+				return
+			}
+		}
+		// If nothing found going up, stay at current position if it's valid
+		if m.cursor < len(m.flattenedItems) && m.flattenedItems[m.cursor].goal.ID != "" {
+			m.adjustScrollOffset()
+			return
+		}
+	} else {
+		// Moving down: search forwards from start position
+		for i := startPos; i < len(m.flattenedItems); i++ {
+			if m.flattenedItems[i].goal.ID != "" {
+				m.cursor = i
+				m.adjustScrollOffset()
+				return
+			}
+		}
+		// If nothing found going down, stay at current position if it's valid
+		if m.cursor < len(m.flattenedItems) && m.flattenedItems[m.cursor].goal.ID != "" {
+			m.adjustScrollOffset()
+			return
+		}
+	}
+
+	// Fallback: find any valid item
+	for i := 0; i < len(m.flattenedItems); i++ {
+		if m.flattenedItems[i].goal.ID != "" {
+			m.cursor = i
+			break
+		}
+	}
+
+	m.adjustScrollOffset()
+}
+
+// adjustScrollOffset ensures the cursor is visible in the viewport
+func (m *HierarchyScreen) adjustScrollOffset() {
+	if len(m.flattenedItems) == 0 {
+		return
+	}
+
+	headerHeight := lipgloss.Height(headerStyle.Render("Goal Hierarchy"))
+	availableHeight := m.height - headerHeight - 2 // Account for padding
+
+	// Calculate how many items can fit in the viewport
+	// We'll estimate 1 line per item (this is approximate)
+	// Use the same calculation as in renderFlattenedTree
+	maxVisibleItems := max(1, availableHeight-1)
+
+	// Calculate the maximum scroll offset (to show the bottom of the list)
+	// We want to show the last maxVisibleItems items, so maxScrollOffset should allow that
+	maxScrollOffset := max(0, len(m.flattenedItems)-maxVisibleItems)
+
+	// Priority 1: Ensure cursor is visible
+	// If cursor is above the visible area, scroll up to show it
+	if m.cursor < m.scrollOffset {
+		m.scrollOffset = m.cursor
+	}
+
+	// If cursor is below the visible area, scroll down to show it
+	// The cursor should be visible, so it should be within [scrollOffset, scrollOffset+maxVisibleItems-1]
+	// We use > instead of >= to ensure we scroll when cursor is exactly at the boundary
+	if m.cursor > m.scrollOffset+maxVisibleItems-1 {
+		m.scrollOffset = m.cursor - maxVisibleItems + 1
+	}
+
+	// Priority 2: Clamp to valid bounds, but ensure cursor remains visible
+	if m.scrollOffset < 0 {
+		m.scrollOffset = 0
+	}
+
+	// Special handling for when cursor is at the last item
+	// Always ensure the last item is visible when cursor is on it
+	lastItemIndex := len(m.flattenedItems) - 1
+	if m.cursor == lastItemIndex {
+		// Cursor is at the very last item - ensure it's visible
+		if len(m.flattenedItems) > maxVisibleItems {
+			// Set scroll to show the last maxVisibleItems items
+			m.scrollOffset = maxScrollOffset
+			// Double-check: if cursor is still not visible, adjust
+			if m.cursor > m.scrollOffset+maxVisibleItems-1 {
+				m.scrollOffset = m.cursor - maxVisibleItems + 1
+			}
+		} else {
+			// List is shorter than viewport, start from beginning
+			m.scrollOffset = 0
+		}
+	} else if m.cursor >= lastItemIndex-maxVisibleItems+1 && m.cursor < lastItemIndex {
+		// Cursor is near the last item but not at it - show the bottom
+		if len(m.flattenedItems) > maxVisibleItems {
+			m.scrollOffset = maxScrollOffset
+		} else {
+			m.scrollOffset = 0
+		}
+		// But ensure cursor is still visible
+		if m.cursor < m.scrollOffset {
+			m.scrollOffset = m.cursor
+		}
+	} else if m.scrollOffset > maxScrollOffset {
+		// Normal case: clamp to maxScrollOffset if cursor would still be visible
+		cursorWouldBeVisible := m.cursor <= maxScrollOffset+maxVisibleItems-1
+		if cursorWouldBeVisible {
+			m.scrollOffset = maxScrollOffset
+		}
+	}
+
+	// Final safety check: ensure cursor is actually visible with current scrollOffset
+	// If not, force it to be visible (this should rarely happen, but acts as a safeguard)
+	if m.cursor < m.scrollOffset || m.cursor > m.scrollOffset+maxVisibleItems-1 {
+		// Force cursor to be visible
+		if m.cursor < m.scrollOffset {
+			m.scrollOffset = m.cursor
+		} else {
+			m.scrollOffset = m.cursor - maxVisibleItems + 1
+			if m.scrollOffset < 0 {
+				m.scrollOffset = 0
+			}
+		}
+	}
 }
