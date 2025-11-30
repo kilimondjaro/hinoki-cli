@@ -17,6 +17,7 @@ type listKeyMap struct {
 	goToParent       key.Binding
 	unlinkParent     key.Binding
 	openOverdue      key.Binding
+	createBackup     key.Binding
 }
 
 func NewListKeyMap() listKeyMap {
@@ -76,6 +77,10 @@ func NewListKeyMap() listKeyMap {
 		openOverdue: key.NewBinding(
 			key.WithKeys("o", "щ"),
 			key.WithHelp("o", "Open overdue goals"),
+		),
+		createBackup: key.NewBinding(
+			key.WithKeys("B"),
+			key.WithHelp("B", "Create database backup"),
 		),
 	}
 }

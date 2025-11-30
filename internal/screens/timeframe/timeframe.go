@@ -1,9 +1,11 @@
 package timeframe
 
 import (
+	"fmt"
 	"time"
 
 	"hinoki-cli/internal/dates"
+	"hinoki-cli/internal/db"
 	"hinoki-cli/internal/goal"
 	"hinoki-cli/internal/goallist"
 	"hinoki-cli/internal/repository"
@@ -33,6 +35,10 @@ type TimeframeScreen struct {
 	timeframe goal.Timeframe
 
 	width, height int
+
+	// Temporary message to display (e.g., backup success/error)
+	message      string
+	messageTimer *time.Timer
 }
 
 var (
@@ -50,6 +56,14 @@ type GoalsResult struct {
 
 type AddGoalSuccess struct{}
 type UpdateGoalSuccess struct{}
+
+type BackupSuccess struct {
+	Path string
+}
+
+type BackupError struct {
+	Error error
+}
 
 func NewTimeframeScreen() screens.Screen {
 	keys := NewListKeyMap()
@@ -95,6 +109,17 @@ func (m *TimeframeScreen) Update(msg tea.Msg) tea.Cmd {
 		if cmd != nil {
 			return cmd
 		}
+	case BackupSuccess:
+		// Display success message and clear it after 3 seconds
+		m.message = fmt.Sprintf("✅ Backup created: %s", msg.Path)
+		cmds = append(cmds, m.clearMessageAfter(3*time.Second))
+	case BackupError:
+		// Display error message and clear it after 3 seconds
+		m.message = fmt.Sprintf("❌ Backup failed: %v", msg.Error)
+		cmds = append(cmds, m.clearMessageAfter(3*time.Second))
+	case ClearMessageMsg:
+		// Clear the message
+		m.message = ""
 	case error:
 		// swallow errors in UI loop, they will be logged by Bubble Tea
 	}
@@ -142,12 +167,23 @@ func (m *TimeframeScreen) View() string {
 
 	headerHeight := lipgloss.Height(header)
 	actionInputHeight := 0
+	messageHeight := 0
 
 	if m.state != Normal {
 		actionInputHeight = lipgloss.Height(actionInput)
 	}
 
-	listHeight := m.height - headerHeight - actionInputHeight
+	// Calculate message height if present
+	if m.message != "" {
+		messageStyle := lipgloss.NewStyle().
+			Foreground(theme.TextSecondary()).
+			MarginTop(1).
+			Italic(true)
+		message := messageStyle.Render(m.message)
+		messageHeight = lipgloss.Height(message)
+	}
+
+	listHeight := m.height - headerHeight - actionInputHeight - messageHeight
 
 	style := lipgloss.NewStyle().PaddingLeft(2)
 	horizontalPadding := (m.width - maxWidth) / 2
@@ -172,6 +208,16 @@ func (m *TimeframeScreen) View() string {
 
 	if m.state == GotoDate {
 		view = lipgloss.JoinVertical(lipgloss.Left, view, actionInput)
+	}
+
+	// Add temporary message if present
+	if m.message != "" {
+		messageStyle := lipgloss.NewStyle().
+			Foreground(theme.TextSecondary()).
+			MarginTop(1).
+			Italic(true)
+		message := messageStyle.Render(m.message)
+		view = lipgloss.JoinVertical(lipgloss.Left, view, message)
 	}
 
 	return style.
@@ -275,6 +321,8 @@ func (m *TimeframeScreen) handleKeyMsgInNormalState(msg tea.KeyMsg) tea.Cmd {
 		return func() tea.Msg {
 			return screens.OpenOverdueScreen{}
 		}
+	case key.Matches(msg, m.keys.createBackup):
+		return m.createBackupCmd()
 	}
 	return nil
 }
@@ -349,4 +397,23 @@ func (m *TimeframeScreen) unlinkParentCmd(goalID string) tea.Cmd {
 		// Return UpdateGoalSuccess to trigger refresh
 		return goallist.UpdateGoalSuccess{}
 	}
+}
+
+func (m *TimeframeScreen) createBackupCmd() tea.Cmd {
+	return func() tea.Msg {
+		backupPath, err := db.CreateBackup()
+		if err != nil {
+			return BackupError{Error: err}
+		}
+		return BackupSuccess{Path: backupPath}
+	}
+}
+
+// ClearMessageMsg is sent to clear the temporary message
+type ClearMessageMsg struct{}
+
+func (m *TimeframeScreen) clearMessageAfter(duration time.Duration) tea.Cmd {
+	return tea.Tick(duration, func(time.Time) tea.Msg {
+		return ClearMessageMsg{}
+	})
 }
