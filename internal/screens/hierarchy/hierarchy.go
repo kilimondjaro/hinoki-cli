@@ -530,7 +530,7 @@ func (m *HierarchyScreen) flattenAncestorChain() {
 		})
 
 		// Add vertical connector lines for non-last items (except root)
-		if !isLast && !isRoot {
+		if !isLast {
 			m.flattenedItems = append(m.flattenedItems, TreeItem{
 				goal:      goal.Goal{}, // Empty goal for connector lines
 				prefix:    "│ ",
