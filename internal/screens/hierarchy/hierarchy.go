@@ -356,7 +356,7 @@ func (m *HierarchyScreen) renderTreeNode(nodes []TreeNode, lines *[]string, pref
 		// Only use ┌─ for the very first root node
 		var connector string
 		if isRoot && i == 0 && len(nodes) == 1 {
-			connector = treeCharStyle.Render("┌─ ")
+			connector = treeCharStyle.Render("   ")
 		} else if isNodeLast {
 			connector = treeCharStyle.Render("└─ ")
 		} else {
