@@ -24,24 +24,32 @@ Hinoki Planner is designed to be highly intuitive and efficient, making navigati
 
 ## Navigation
 
+### Timeframe Navigation
+
 | Action                                   | Key(s)               | Description                                |
 |------------------------------------------|----------------------|--------------------------------------------|
 | **Previous period** (e.g., previous day) | `h` or `<-`          | Navigate to the previous period.           |
 | **Next period**                          | `l` or `->`          | Navigate to the next period.               |
-| **Next goal**                            | `j` or `Arrow Down`  | Move to the next goal.                     |
-| **Previous goal**                        | `k` or `Arrow Up`    | Move to the previous goal.                 |
 | **Go to date or timeframe**              | `g`                  | Jump to a specific date or timeframe.      |
-| **Quit the app**                         | `Q`                  | Exit the application.                      |
+| **Current period**                       | `t`                  | Navigate to the current period.            |
 | **Select timeframe**                     |                      | Choose the timeframe to navigate to:       |
-| Today                                    | `t`                  | Navigate to today.                         |
 | Day                                      | `d`                  | Navigate to the current day.               |
 | Week                                     | `w`                  | Navigate to the current week.              |
 | Month                                    | `m`                  | Navigate to the current month.             |
 | Quarter                                  | `q`                  | Navigate to the current quarter.           |
 | Year                                     | `y`                  | Navigate to the current year.              |
-| Life                                     | `l`                  | Navigate to the entire lifespan timeframe. |
+| Life                                     | `L`                  | Navigate to the entire lifespan timeframe. |
 
-## Managing goals
+### Goal List Navigation
+
+| Action                            | Key(s)                | Description                                                                                 |
+|-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
+| **Next goal**                     | `j` or `Arrow Down`   | Move to the next goal.                                                                      |
+| **Previous goal**                 | `k` or `Arrow Up`     | Move to the previous goal.                                                                  |
+
+## Managing Goals
+
+### Basic Goal Operations
 
 | Action                            | Key(s)                | Description                                                                                 |
 |-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
@@ -50,7 +58,58 @@ Hinoki Planner is designed to be highly intuitive and efficient, making navigati
 | **Archive a goal**                | `Backspace`           | Archive the currently selected goal.                                                        |
 | **Move a goal to another period** | `D` then specify date | Move the selected goal to another period by pressing uppercase `D` and specifying the date. |
 | **Edit a goal**                   | `e`                   | Edit the currently selected goal.                                                           |
+| **Reload goals**                  | `r`                   | Reload the goal list to refresh data.                                                       |
+
+### Goal Navigation & Details
+
+| Action                            | Key(s)                | Description                                                                                 |
+|-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
 | **Open goal details**             | `Enter`               | Open goal details screen for managing subgoals.                                             |
+| **Show goal hierarchy**           | `v`                   | Open the hierarchy view showing the goal's parent chain and tree structure.                 |
+| **Open goal in timeframe**        | `o`                   | Navigate to the timeframe screen for the selected goal (if it has a timeframe).             |
+
+## Goal Hierarchy Screen
+
+| Action                            | Key(s)                | Description                                                                                 |
+|-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
+| **Navigate up**                    | `k` or `Arrow Up`    | Move cursor up in the hierarchy tree.                                                       |
+| **Navigate down**                  | `j` or `Arrow Down`  | Move cursor down in the hierarchy tree.                                                    |
+| **Show full tree**                 | `a`                   | Toggle between showing ancestor chain only or the full tree with all siblings.              |
+| **Open goal details**              | `Enter`               | Open goal details screen for the selected goal.                                            |
+| **Open timeframe**                | `o`                   | Navigate to the timeframe screen for the selected goal (if it has a timeframe).             |
+
+## Goal Relationships
+
+| Action                            | Key(s)                | Description                                                                                 |
+|-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
+| **Go to parent goal**             | `p`                   | Navigate to the parent goal of the currently selected goal (if it has a parent).           |
+| **Unlink from parent**            | `u`                   | Remove the parent relationship from the currently selected goal.                            |
+| **Assign parent**                 | `p` (in overdue)     | In the overdue screen, assign a parent to the selected goal by opening search.            |
+
+## Search
+
+| Action                            | Key(s)                | Description                                                                                 |
+|-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
+| **Open search**                    | `f` or `/`            | Open the search screen to find goals.                                                      |
+| **Navigate results**               | `Arrow Up/Down`       | Move through search results.                                                                |
+| **Select goal**                    | `Enter`               | Open the selected goal in its timeframe, or assign as parent if in parent assignment mode.|
+| **Cancel search**                  | `Esc`                 | Close the search screen and return to the previous screen.                                 |
+
+## Overdue Goals
+
+| Action                            | Key(s)                | Description                                                                                 |
+|-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
+| **Open overdue screen**           | `o`                   | Open the overdue goals screen from the timeframe view.                                      |
+| **Open goal in timeframe**        | `o`                   | Navigate to the timeframe screen for the selected overdue goal.                            |
+| **Assign parent**                  | `p`                   | Assign a parent to the selected goal by opening search.                                      |
+
+## Goal Details Screen
+
+| Action                            | Key(s)                | Description                                                                                 |
+|-----------------------------------|-----------------------|---------------------------------------------------------------------------------------------|
+| **Open goal**                      | `o`                   | Navigate to the timeframe screen for the selected subgoal.                                  |
+| **Go back**                       | `Esc`                 | Return to the previous screen.                                                              |
+| **Manage subgoals**                |                       | All goal list operations (create, edit, mark done, etc.) work on subgoals in this screen.  |
 
 ## Date and Timeframe Shortcuts
 | Keyword                  | Shorthand     | Description                                                                                   | Timeframe      |
