@@ -7,6 +7,7 @@ import (
 	"hinoki-cli/internal/repository"
 	"hinoki-cli/internal/screens"
 	"hinoki-cli/internal/theme"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
@@ -169,6 +170,10 @@ func (m *HierarchyScreen) handleKeyMsg(msg tea.KeyMsg) tea.Cmd {
 		m.moveCursor(-1)
 	case key.Matches(msg, m.keys.cursorDown):
 		m.moveCursor(1)
+	case key.Matches(msg, m.keys.openDetails):
+		return m.openGoalDetailsCmd()
+	case key.Matches(msg, m.keys.openTimeframe):
+		return m.openTimeframeCmd()
 	}
 
 	return nil
@@ -745,6 +750,67 @@ func (m *HierarchyScreen) adjustScrollOffset() {
 			if m.scrollOffset < 0 {
 				m.scrollOffset = 0
 			}
+		}
+	}
+}
+
+// getSelectedGoal returns the goal at the current cursor position
+func (m *HierarchyScreen) getSelectedGoal() *goal.Goal {
+	if len(m.flattenedItems) == 0 || m.cursor < 0 || m.cursor >= len(m.flattenedItems) {
+		return nil
+	}
+
+	item := m.flattenedItems[m.cursor]
+	// Skip connector lines (items with empty goal.ID)
+	if item.goal.ID == "" {
+		return nil
+	}
+
+	return &item.goal
+}
+
+// openGoalDetailsCmd opens the goal details screen for the selected goal
+func (m *HierarchyScreen) openGoalDetailsCmd() tea.Cmd {
+	selectedGoal := m.getSelectedGoal()
+	if selectedGoal == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+		return screens.OpenGoalDetailsScreen{
+			Goal: selectedGoal,
+		}
+	}
+}
+
+// openTimeframeCmd opens the timeframe screen for the selected goal if it has a timeframe
+func (m *HierarchyScreen) openTimeframeCmd() tea.Cmd {
+	selectedGoal := m.getSelectedGoal()
+	if selectedGoal == nil {
+		return nil
+	}
+
+	// Check if the goal has a timeframe
+	if selectedGoal.Timeframe == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+		// Life goals don't have dates, so use current time
+		var date time.Time
+		if selectedGoal.Date != nil {
+			date = *selectedGoal.Date
+		} else if *selectedGoal.Timeframe == goal.Life {
+			date = time.Now()
+		} else {
+			// Other timeframes require a date
+			return nil
+		}
+
+		return screens.OpenTimeframeScreenWithGoal{
+			Timeframe: *selectedGoal.Timeframe,
+			Date:      date,
+			GoalID:    selectedGoal.ID,
 		}
 	}
 }
