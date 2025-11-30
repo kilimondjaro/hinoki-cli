@@ -84,7 +84,7 @@ const (
 )
 
 func TimeframeDateString(t time.Time) string {
-	return t.UTC().Format("2006-01-02")
+	return t.Format("2006-01-02")
 }
 
 func StartOfWeek(date time.Time) time.Time {
@@ -169,7 +169,13 @@ func PrevWeekday(date time.Time, targetWeekday time.Weekday) time.Time {
 }
 
 func CurrentWeekday(date time.Time, targetWeekday time.Weekday) time.Time {
-	return date.AddDate(0, 0, int(targetWeekday)-int(date.Weekday()))
+	daysDiff := int(targetWeekday) - int(date.Weekday())
+	// If the target weekday is in the past this week (but not today), go to next week
+	if daysDiff < 0 {
+		daysDiff += 7
+	}
+	// If daysDiff is 0, it's today, so return the same date
+	return date.AddDate(0, 0, daysDiff)
 }
 
 func NextMonth(date time.Time, targetMonth time.Month) time.Time {

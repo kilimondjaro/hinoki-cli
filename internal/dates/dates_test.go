@@ -187,3 +187,26 @@ func TestIsOverdue_Life(t *testing.T) {
 		t.Errorf("Life goals should never be overdue, even with future dates")
 	}
 }
+
+func TestTimeframeDateString(t *testing.T) {
+	// Test that TimeframeDateString formats dates correctly without timezone conversion issues
+	// This is important for overdue goal detection
+
+	// Create a date in a timezone ahead of UTC (e.g., UTC+5)
+	loc, _ := time.LoadLocation("Asia/Karachi") // UTC+5
+	testDate := time.Date(2024, 1, 2, 0, 0, 0, 0, loc)
+
+	result := TimeframeDateString(testDate)
+	expected := "2024-01-02"
+
+	if result != expected {
+		t.Errorf("TimeframeDateString(%v) = %s; want %s", testDate, result, expected)
+	}
+
+	// Test with UTC timezone
+	utcDate := time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC)
+	resultUTC := TimeframeDateString(utcDate)
+	if resultUTC != expected {
+		t.Errorf("TimeframeDateString(%v) = %s; want %s", utcDate, resultUTC, expected)
+	}
+}
